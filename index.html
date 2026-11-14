@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flake Lab | Paper snowflake template maker</title>
+<meta name="description" content="Design a paper snowflake, preview it unfolded, then print a fold-and-cut template.">
+<meta name="theme-color" content="#0a0e13">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%230a0e13'/%3E%3Cg stroke='%23cde9f7' stroke-width='1.6' stroke-linecap='round' fill='none'%3E%3Cpath d='M12 4v16M5.1 8l13.8 8M5.1 16l13.8-8'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-tab="design">
+
+<!-- icon sprite -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="arm"><path d="M12 2.5V12M9.4 5.2 12 7.8l2.6-2.6"/></g>
+  </defs>
+  <symbol id="i-logo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <use href="#arm"/><use href="#arm" transform="rotate(60 12 12)"/><use href="#arm" transform="rotate(120 12 12)"/>
+    <use href="#arm" transform="rotate(180 12 12)"/><use href="#arm" transform="rotate(240 12 12)"/><use href="#arm" transform="rotate(300 12 12)"/></g></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5 4 10l5 5"/><path d="M4 10h10a6 6 0 0 1 0 12h-3"/></g></symbol>
+  <symbol id="i-redo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5 5 5-5 5"/><path d="M20 10H10a6 6 0 0 0 0 12h3"/></g></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="m6 7 1 13h10l1-13"/></g></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></g></symbol>
+  <symbol id="i-flip" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18" stroke-dasharray="2 2.4"/><path d="M9 7 3 18h6z"/><path d="m15 7 6 11h-6z"/></g></symbol>
+  <symbol id="i-front" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><rect x="3" y="3" width="11" height="11" rx="1.5" opacity=".45"/><rect x="10" y="10" width="11" height="11" rx="1.5" fill="currentColor" fill-opacity=".18"/></g></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><rect x="10" y="10" width="11" height="11" rx="1.5" opacity=".45"/><rect x="3" y="3" width="11" height="11" rx="1.5" fill="currentColor" fill-opacity=".18"/></g></symbol>
+  <symbol id="i-shuffle" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h4l10 10h4"/><path d="M3 17h4l3-3"/><path d="m14 10 3-3h4"/><path d="m19 5 2 2-2 2"/><path d="m19 15 2 2-2 2"/></g></symbol>
+  <symbol id="i-reset" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 3-6.2"/><path d="M4 4v5h5"/></g></symbol>
+  <symbol id="i-print" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9V3h10v6"/><rect x="4" y="9" width="16" height="8" rx="2"/><path d="M7 14h10v7H7z"/></g></symbol>
+  <symbol id="i-geo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20 12 4l9 16z"/><path d="M12 4v16" stroke-dasharray="2 2.4"/></g></symbol>
+</svg>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>
+    <div class="brand-text">
+      <span class="brand-name">FLAKE LAB</span>
+      <span class="brand-tag">fold. cut. flake.</span>
+    </div>
+  </div>
+
+  <div class="fold-picker">
+    <div class="seg" role="radiogroup" aria-label="Number of arms">
+      <button type="button" role="radio" aria-checked="false" data-arms="4">4 arms</button>
+      <button type="button" role="radio" aria-checked="true" data-arms="6">6 arms</button>
+    </div>
+    <span class="fold-meta mono" id="foldMeta" aria-live="polite"></span>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="btn" id="btnUndo" title="Undo (Ctrl+Z)"><svg class="ic"><use href="#i-undo"/></svg><span class="lbl">Undo</span></button>
+    <button type="button" class="btn" id="btnRedo" title="Redo (Ctrl+Shift+Z)"><svg class="ic"><use href="#i-redo"/></svg><span class="lbl">Redo</span></button>
+    <button type="button" class="btn" id="btnSurprise" title="Start from a random flake"><svg class="ic"><use href="#i-shuffle"/></svg><span class="lbl">Surprise me</span></button>
+    <button type="button" class="btn" id="btnReset" title="Clear the template"><svg class="ic"><use href="#i-reset"/></svg><span class="lbl">Reset</span></button>
+    <span class="divider" aria-hidden="true"></span>
+    <button type="button" class="btn soon" id="btnGeo" disabled title="Geometry mode arrives in a later phase"><svg class="ic"><use href="#i-geo"/></svg><span class="lbl">Geometry mode</span></button>
+    <button type="button" class="btn primary soon" id="btnPrint" disabled title="Printable template arrives in a later phase"><svg class="ic"><use href="#i-print"/></svg><span class="lbl">Print template</span></button>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- LEFT: shapes -->
+  <aside class="panel panel-left" data-panel="shapes" aria-label="Shape library">
+    <div class="tabs" role="tablist">
+      <button type="button" class="tab on" role="tab" aria-selected="true">Shapes</button>
+      <button type="button" class="tab soon" role="tab" disabled title="Photo tracing arrives in a later phase">Photo</button>
+      <button type="button" class="tab soon" role="tab" disabled title="Text shapes arrive in a later phase">Text</button>
+    </div>
+    <p class="hint">Click a shape to drop it on the wedge, then drag, resize and rotate it.</p>
+    <div class="tiles" id="tiles"></div>
+
+    <h2 class="panel-title mono">On your wedge <span id="layerCount" class="count">0</span></h2>
+    <ul class="layers" id="layers" aria-label="Objects on the wedge"></ul>
+  </aside>
+
+  <!-- CENTER: editor -->
+  <section class="panel panel-center" data-panel="design" aria-label="Wedge editor">
+    <div class="stage">
+      <svg id="editor" tabindex="0" role="application" aria-label="Wedge editor. Select a shape, then drag it or use the arrow keys."></svg>
+      <div class="legend" aria-hidden="true">
+        <span class="chip"><i class="sw sw-cut"></i>Cut away</span>
+        <span class="chip"><i class="sw sw-keep"></i>Paper stays</span>
+        <span class="chip chip-fold" id="foldChip"></span>
+      </div>
+    </div>
+
+    <div class="selbar" id="selbar">
+      <div class="sel-name mono" id="selName">Nothing selected</div>
+      <div class="seg seg-sm" role="radiogroup" aria-label="Cut or keep">
+        <button type="button" role="radio" aria-checked="true" id="roleCut" data-role="cut" title="This shape is cut away (K toggles)">Cut</button>
+        <button type="button" role="radio" aria-checked="false" id="roleKeep" data-role="keep" title="Paper stays here, even over cuts (K toggles)">Keep</button>
+      </div>
+      <div class="sel-tools">
+        <button type="button" class="icon-btn" id="btnFlip" title="Flip (F)" aria-label="Flip"><svg class="ic"><use href="#i-flip"/></svg></button>
+        <button type="button" class="icon-btn" id="btnDup" title="Duplicate (Ctrl+D)" aria-label="Duplicate"><svg class="ic"><use href="#i-copy"/></svg></button>
+        <button type="button" class="icon-btn" id="btnFront" title="Bring forward (])" aria-label="Bring forward"><svg class="ic"><use href="#i-front"/></svg></button>
+        <button type="button" class="icon-btn" id="btnBack" title="Send back ([)" aria-label="Send back"><svg class="ic"><use href="#i-back"/></svg></button>
+        <button type="button" class="icon-btn danger" id="btnDel" title="Delete (Delete key)" aria-label="Delete"><svg class="ic"><use href="#i-trash"/></svg></button>
+      </div>
+    </div>
+
+    <div class="hubbar">
+      <label class="check"><input type="checkbox" id="hubOn" checked> Protect center</label>
+      <label class="range" for="hubR"><span class="mono">hub size</span>
+        <input type="range" id="hubR" min="0" max="20" step="0.5" value="7"></label>
+      <span class="keys mono">drag · arrows nudge · shift+drag rotates in 15° steps · K cut/keep · Del</span>
+    </div>
+  </section>
+
+  <!-- RIGHT: preview -->
+  <aside class="panel panel-right" data-panel="preview" aria-label="Snowflake preview">
+    <div class="card">
+      <h2 class="panel-title mono">Unfolded preview</h2>
+      <div class="preview-wrap">
+        <svg id="preview" role="img" aria-label="Preview of the unfolded snowflake"></svg>
+      </div>
+      <div class="preview-meta">
+        <label class="check"><input type="checkbox" id="showFolds"> Show fold lines</label>
+        <span class="stat mono" id="stat"></span>
+      </div>
+    </div>
+
+    <div class="card card-soon">
+      <h2 class="panel-title mono">Complexity <span class="tag">soon</span></h2>
+      <div class="meter" aria-hidden="true"><i></i></div>
+      <p class="muted">How hard it will be to cut, from "easy with kid scissors" to "bring a craft knife".</p>
+    </div>
+    <div class="card card-soon">
+      <h2 class="panel-title mono">Cut checks <span class="tag">soon</span></h2>
+      <p class="muted">Flags islands and slivers that would fall out or tear, with one-click bridges.</p>
+    </div>
+  </aside>
+</main>
+
+<nav class="mobile-tabs" aria-label="Sections">
+  <button type="button" data-go="shapes">Shapes</button>
+  <button type="button" data-go="design" class="on">Design</button>
+  <button type="button" data-go="preview">Preview</button>
+</nav>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden>
+  <span id="toastMsg"></span>
+  <button type="button" id="toastAction" class="toast-action"></button>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/geometry.js"></script>
+<script src="js/shapes.js"></script>
+<script src="js/sampler.js"></script>
+<script src="js/state.js"></script>
+<script src="js/preview.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
