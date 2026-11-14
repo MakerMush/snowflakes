@@ -86,6 +86,8 @@
       };
       if (hasPolys) { out.polys = o.polys; out.aspect = num(o.aspect, 1); out.name = String(o.name || 'Traced shape').slice(0, 40); }
       else out.shapeId = o.shapeId;
+      if (typeof o.label === 'string' && o.label) out.label = o.label.slice(0, 40);
+      if (o.bridge) out.bridge = true;
       d.objects.push(out);
     });
     d.nextId = Math.max(num(input.nextId, 1), maxId + 1, d.objects.length + 1);
@@ -189,6 +191,58 @@
         selected = o.id;
         emit('change');
         return o;
+      },
+      /** Add several ready-made objects (such as bridges) as one undo step. Selection is left alone. */
+      addObjects: function (drafts) {
+        var room = MAX_OBJECTS - doc.objects.length, added = [];
+        if (!drafts || !drafts.length || room <= 0) return added;
+        begin();
+        drafts.slice(0, room).forEach(function (d) {
+          var o = sanitize({ arms: doc.arms, objects: [Object.assign({}, d, { id: 'o1' })] }).objects[0];
+          if (!o) return;
+          o.id = newId();
+          doc.objects.push(o);
+          added.push(o);
+        });
+        emit('change');
+        return added;
+      },
+      removeBridges: function () {
+        var keep = doc.objects.filter(function (o) { return !o.bridge; });
+        if (keep.length === doc.objects.length) return 0;
+        begin();
+        var removed = doc.objects.length - keep.length;
+        doc.objects = keep;
+        fixSelection();
+        emit('change');
+        return removed;
+      },
+      /**
+       * Snap an object to the wedge. mode: 'center' (onto the middle line, rotation 0) or
+       * 'left' / 'right' (rotated to that fold edge's angle and moved onto it). With opts.flush the
+       * object sits inside the wedge with its side touching the fold; otherwise it is centred on the
+       * fold line, so the mirrored copy completes a symmetric shape. Distance from the tip is kept.
+       */
+      alignTo: function (id, mode, opts) {
+        var o = find(id);
+        if (!o) return;
+        var H = G.halfAngle(doc.arms), patch;
+        if (mode === 'center') {
+          patch = { x: 0, rot: 0 };
+        } else if (mode === 'left' || mode === 'right') {
+          var sg = mode === 'left' ? -1 : 1;
+          var u = [sg * Math.sin(H), -Math.cos(H)];                      // direction of the edge, away from the tip
+          var t = G.clamp(o.x * u[0] + o.y * u[1], 2, G.R - 2);          // how far along the edge the object sits
+          var x = u[0] * t, y = u[1] * t;
+          if (opts && opts.flush) {
+            var inward = mode === 'left' ? [Math.cos(H), -Math.sin(H)] : [-Math.cos(H), -Math.sin(H)];
+            x += inward[0] * o.sx / 2; y += inward[1] * o.sx / 2;
+          }
+          patch = { x: x, y: y, rot: (((sg * H * 180 / Math.PI) % 360) + 360) % 360 };
+        } else return;
+        begin();
+        for (var k in patch) o[k] = patch[k];
+        emit('change');
       },
       remove: function (id) {
         var i = doc.objects.indexOf(find(id));

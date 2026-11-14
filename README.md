@@ -3,7 +3,7 @@
 Design a paper snowflake, watch it unfold live, then print a fold-and-cut template.
 Plain HTML, CSS and JavaScript. No build step, no dependencies, no server.
 
-Status: **phase 1 of 6** (wedge editor, shape library, live unfolded preview). See the roadmap below.
+Status: **phase 2 of 6** (cut checks, auto bridges, complexity score, align tools). See the roadmap below.
 
 ## Run it
 
@@ -30,7 +30,26 @@ That address is also what the printed QR code will point to. If the address chan
 - **Protect center** keeps a small solid hub so the arms do not fall apart at the middle.
 - Keys: arrows nudge (Shift for bigger steps), K toggles cut/keep, F flips, `[` and `]` change
   stacking, Ctrl+D duplicates, Delete removes, Ctrl+Z / Ctrl+Shift+Z undo and redo.
+- **Align** (bar under the canvas): **Center** moves the shape onto the middle line and sets rotation to 0.
+  **Left edge** and **Right edge** swing the shape to the fold line and rotate it to that edge's angle
+  (30 degrees for 6 arms, 22.5 for 4). Choose **On the fold** to center it on the fold line (the mirrored
+  copy completes a symmetric shape) or **Inside** to keep it in the wedge with its side touching the fold.
+  Pressing C also centers.
 - The design autosaves in your browser. **Reset** clears it (and offers Undo). **Surprise me** makes a random one.
+
+## Checks and complexity (phase 2)
+
+The design is rasterized at full-disc size using the same fold math as the preview, then analyzed:
+
+- **Islands**: paper that would fall out (including a stranded center, or a flake that splits into
+  separate pieces). Shown in coral on the canvas and preview. **Add bridges** links each island to the
+  main paper with the shortest keep-bar(s) (one undo removes them all); **Remove bridges** deletes them.
+- **Too thin**: paper bridges or tips, and cutouts, narrower than the chosen tool can handle.
+  Pick **Kid scissors**, **Sharp scissors** or **Craft knife** under Cut checks. Thin paper is striped
+  one way, thin cuts the other. Details finer than about 0.8 mm cannot be seen by the checker at all.
+- **Complexity**: a 1 to 10 score (cut length, number of cutouts and notches, 12 layers versus 8, fine
+  detail) with a plain label and a **recommended tool**. Designs with interior cutouts need at least a
+  point to poke through, and details too fine for a knife are called out.
 
 ## How it works
 
@@ -41,6 +60,7 @@ times: even copies are rotations, odd copies are mirror images (the dihedral gro
 - `js/shapes.js` the shape library, stored as normalized polygons
 - `js/sampler.js` "is there paper at this point?", using the exact same fold math as the preview
 - `js/state.js` the design document, undo/redo, validation, random flakes (pure, tested)
+- `js/analyze.js` islands, thin features, cut length, complexity score, tool recommendation, auto bridges
 - `js/preview.js` draws the unfolded flake as an SVG mask
 - `js/editor.js` the wedge canvas: selection, drag, resize, rotate, keyboard
 - `js/app.js` wires the page together; `js/config.js` holds the site address
@@ -55,12 +75,13 @@ node --test tests/*.test.js
 ```
 
 Needs Node 20 or newer. The tests cover the fold math (every point's 12 images, mirror and
-rotation symmetry), the shape library, the document and undo logic, and the sampler.
+rotation symmetry), the shape library, the document and undo logic (including align and bridges), the
+sampler, and the analyzer (islands, thin features, score and tool, bridge repair, speed).
 
 ## Roadmap
 
 1. Wedge editor, shape library, live preview (done)
-2. Island, sliver and tiny-hole checks, auto bridges, complexity meter
+2. Island, sliver and tiny-hole checks, auto bridges, complexity meter, align tools (done)
 3. Photo upload and tracing (threshold, noise and smoothing sliders)
 4. Printable template: fold guide, cut lines, scale bar, QR code, PDF
 5. Geometry mode (symmetry group, angles, unfold animation, worksheet with answer key)

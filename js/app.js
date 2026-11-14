@@ -1,9 +1,9 @@
-/* app.js - wires the store, editor, preview and page controls together. */
+/* app.js - wires the store, editor, preview, analysis and page controls together. */
 (function (root) {
   'use strict';
-  var SF = root.SF, G = SF.geometry, S = SF.shapes, ST = SF.state, SM = SF.sampler;
+  var SF = root.SF, G = SF.geometry, S = SF.shapes, ST = SF.state, SM = SF.sampler, AN = SF.analyze;
   var $ = function (id) { return document.getElementById(id); };
-  var KEY = SF.config.storageKey;
+  var KEY = SF.config.storageKey, TOOL_KEY = SF.config.storageKey + '.tool';
 
   /* ---------- load / save ---------- */
 
@@ -18,10 +18,18 @@
       try { root.localStorage.setItem(KEY, store.serialize()); } catch (e) { /* storage blocked */ }
     }, 250);
   }
+  function loadTool() {
+    try { var t = +root.localStorage.getItem(TOOL_KEY); if (t >= 0 && t <= 2) return t; } catch (e) { /* storage blocked */ }
+    return 0;
+  }
 
   var store = ST.createStore(loadSaved() || ST.starterDoc());
   var editor = new SF.Editor($('editor'), store);
+  var tool = loadTool();                              // 0 kid scissors, 1 sharp scissors, 2 craft knife
+  var edgeMode = 'fold';                              // 'fold' (centered on the fold) or 'inside'
+  var analysis = null, overlayURL = null, stale = true, anTimer = 0;
   SF.store = store;                                   // handy in the browser console
+  SF.getAnalysis = function () { return analysis; };
 
   /* ---------- shape library ---------- */
 
@@ -53,7 +61,7 @@
     toast('Template cleared.', 'Undo', function () { store.undo(); });
   });
 
-  /* ---------- selection bar ---------- */
+  /* ---------- selection bar and align tools ---------- */
 
   function withSel(fn) { return function () { var id = store.selectedId; if (id) fn(id); }; }
   $('btnFlip').addEventListener('click', withSel(function (id) { store.toggleFlip(id); }));
@@ -64,9 +72,20 @@
   $('roleCut').addEventListener('click', withSel(function (id) { store.setRole(id, 'cut'); }));
   $('roleKeep').addEventListener('click', withSel(function (id) { store.setRole(id, 'keep'); }));
 
+  $('alignCenter').addEventListener('click', withSel(function (id) { store.alignTo(id, 'center'); }));
+  $('alignLeft').addEventListener('click', withSel(function (id) { store.alignTo(id, 'left', { flush: edgeMode === 'inside' }); }));
+  $('alignRight').addEventListener('click', withSel(function (id) { store.alignTo(id, 'right', { flush: edgeMode === 'inside' }); }));
+  document.querySelectorAll('[data-edge]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      edgeMode = b.getAttribute('data-edge');
+      document.querySelectorAll('[data-edge]').forEach(function (x) { x.setAttribute('aria-checked', String(x === b)); });
+    });
+  });
+
   $('hubOn').addEventListener('change', function () { store.setHub(this.checked); });
   $('hubR').addEventListener('input', function () { store.setHubR(+this.value); });
   $('showFolds').addEventListener('change', function () { renderPreview(); });
+  $('showProblems').addEventListener('change', function () { applyOverlay(); });
 
   /* ---------- layers list ---------- */
 
@@ -74,6 +93,8 @@
     var li = e.target.closest('[data-id]');
     if (li) store.select(li.getAttribute('data-id'));
   });
+
+  function nameOf(o) { return o.label || (S.resolve(o) || { name: 'Shape' }).name; }
 
   function renderLayers() {
     var doc = store.doc, sel = store.selectedId;
@@ -83,14 +104,13 @@
       return;
     }
     $('layers').innerHTML = doc.objects.slice().reverse().map(function (o) {
-      var sh = S.resolve(o);
       return '<li><button type="button" class="layer' + (o.id === sel ? ' on' : '') + '" data-id="' + o.id + '">' +
-        '<span class="layer-name">' + (sh ? sh.name : 'Shape') + '</span>' +
+        '<span class="layer-name">' + nameOf(o) + '</span>' +
         '<span class="pill pill-' + o.role + '">' + o.role + '</span></button></li>';
     }).join('');
   }
 
-  /* ---------- panels ---------- */
+  /* ---------- controls ---------- */
 
   function renderControls() {
     var doc = store.doc, o = store.get(store.selectedId);
@@ -106,19 +126,127 @@
     $('hubR').value = doc.hubR;
     $('hubR').disabled = !doc.hub;
 
-    ['btnFlip', 'btnDup', 'btnFront', 'btnBack', 'btnDel', 'roleCut', 'roleKeep'].forEach(function (id) { $(id).disabled = !o; });
-    $('selName').textContent = o ? (S.resolve(o) || { name: 'Shape' }).name : 'Nothing selected';
+    ['btnFlip', 'btnDup', 'btnFront', 'btnBack', 'btnDel', 'roleCut', 'roleKeep',
+      'alignCenter', 'alignLeft', 'alignRight'].forEach(function (id) { $(id).disabled = !o; });
+    $('selName').textContent = o ? nameOf(o) : 'Nothing selected';
+    $('selInfo').textContent = o ? 'rot ' + Math.round(o.rot) + '°' : '';
     $('roleCut').setAttribute('aria-checked', String(!!o && o.role === 'cut'));
     $('roleKeep').setAttribute('aria-checked', String(!!o && o.role === 'keep'));
     $('selbar').classList.toggle('idle', !o);
+    $('alignbar').classList.toggle('idle', !o);
+
+    var H = Math.round(info.wedgeDeg / 2 * 10) / 10;
+    $('alignCenter').title = 'Center (C): move to the middle line and rotate to 0°';
+    $('alignLeft').title = 'Left edge: rotate to ' + H + '° along the left fold and snap onto it';
+    $('alignRight').title = 'Right edge: rotate to ' + H + '° along the right fold and snap onto it';
   }
 
+  /* ---------- preview, analysis, overlays ---------- */
+
+  function problemOverlay() { return $('showProblems').checked && !stale && overlayURL ? overlayURL : null; }
+
   function renderPreview() {
-    SF.preview.render($('preview'), store.doc, { idPrefix: 'pv', showFolds: $('showFolds').checked });
+    SF.preview.render($('preview'), store.doc, { idPrefix: 'pv', showFolds: $('showFolds').checked, overlayHref: problemOverlay() });
     var cut = SM.cutFraction(store.doc, 56);
     $('stat').textContent = store.doc.objects.length + ' shape' + (store.doc.objects.length === 1 ? '' : 's') +
       ' · ' + Math.round(cut * 100) + '% cut away';
   }
+
+  function applyOverlay() {
+    editor.setOverlay(problemOverlay());
+    renderPreview();
+  }
+
+  function overlayDataURL(a) {
+    var px = AN.overlayRGBA(a);
+    if (!px) return null;
+    var c = document.createElement('canvas');
+    c.width = c.height = a.N;
+    c.getContext('2d').putImageData(new ImageData(px, a.N, a.N), 0, 0);
+    return c.toDataURL('image/png');
+  }
+
+  function scheduleAnalysis() {
+    stale = true;
+    editor.setOverlay(null);
+    $('cardCx').classList.add('stale');
+    $('cardChecks').classList.add('stale');
+    clearTimeout(anTimer);
+    anTimer = setTimeout(runAnalysis, 140);
+  }
+
+  function runAnalysis() {
+    anTimer = 0;
+    analysis = AN.analyze(store.doc, { tool: tool });
+    overlayURL = overlayDataURL(analysis);
+    stale = false;
+    $('cardCx').classList.remove('stale');
+    $('cardChecks').classList.remove('stale');
+    renderComplexity();
+    renderChecks();
+    applyOverlay();
+  }
+
+  function renderComplexity() {
+    var r = analysis.report, st = analysis.stats;
+    $('cxNum').textContent = r.score;
+    $('cxLabel').textContent = r.label;
+    $('cxTool').textContent = r.tool.name;
+    var meter = $('meter10');
+    if (!meter.children.length) for (var i = 0; i < 10; i++) meter.appendChild(document.createElement('i'));
+    for (var k = 0; k < 10; k++) meter.children[k].className = k < r.score ? 'on lvl' + (k < 3 ? 'a' : k < 6 ? 'b' : 'c') : '';
+    meter.setAttribute('aria-label', 'Complexity ' + r.score + ' out of 10');
+    $('cxNote').textContent = r.tooFine ? 'Some details are too fine even for a craft knife. Make them chunkier.' : r.tool.note;
+    $('cxDrivers').innerHTML = st.cutLenUnits < 1 ? '<li>Nothing to cut yet. Add a shape.</li>'
+      : r.drivers.map(function (d) { return '<li>' + d + '</li>'; }).join('') || '<li>Simple cuts, nothing tricky.</li>';
+  }
+
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+
+  function renderChecks() {
+    var st = analysis.stats, items = [], tn = AN.TOOLS[tool].short.toLowerCase();
+    if (st.islands) {
+      items.push({ sw: 'sw-island', text: st.fallsApart
+        ? 'Nothing holds this design together: it would fall into ' + plural(st.islandPieces, 'piece', 'pieces') + '.'
+        : plural(st.islands, 'island', 'islands') + ' would fall out (' + plural(st.islandPieces, 'loose piece', 'loose pieces') + ' once unfolded).' });
+    }
+    if (st.thinPaper) items.push({ sw: 'sw-thinpaper', text: plural(st.thinPaper, 'paper bridge or tip is', 'paper bridges or tips are') + ' too thin for ' + tn + '.' });
+    if (st.thinCut) items.push({ sw: 'sw-thincut', text: plural(st.thinCut, 'cutout is', 'cutouts are') + ' too narrow for ' + tn + '.' });
+    $('issues').innerHTML = items.length
+      ? items.map(function (i) { return '<li class="issue bad"><i class="sw ' + i.sw + '"></i><span>' + i.text + '</span></li>'; }).join('')
+      : '<li class="issue good"><i class="tick"></i><span>All clear. Nothing will fall out' + (store.doc.objects.length ? ' and every detail suits ' + tn + '.' : '.') + '</span></li>';
+    $('checksTag').textContent = items.length ? plural(items.length, 'issue', 'issues') : 'all clear';
+    $('checksTag').classList.toggle('tag-bad', items.length > 0);
+    $('btnBridges').disabled = !st.islands;
+    $('btnClearBridges').hidden = !store.doc.objects.some(function (o) { return o.bridge; });
+  }
+
+  /* tool picker */
+  $('toolSeg').innerHTML = AN.TOOLS.map(function (t, i) {
+    return '<button type="button" role="radio" aria-checked="' + (i === tool) + '" data-tool="' + i + '" title="' + t.name + ': handles details down to about ' + t.width + ' mm">' + t.short + '</button>';
+  }).join('');
+  $('toolSeg').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-tool]');
+    if (!b) return;
+    tool = +b.getAttribute('data-tool');
+    try { root.localStorage.setItem(TOOL_KEY, String(tool)); } catch (err) { /* storage blocked */ }
+    $('toolSeg').querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-checked', String(x === b)); });
+    scheduleAnalysis();
+  });
+
+  $('btnBridges').addEventListener('click', function () {
+    var res = AN.autoBridge(store.doc, tool);
+    if (!res.bars.length) { toast('Could not find a spot for a bridge. Try moving a shape.'); return; }
+    store.addObjects(res.bars);
+    toast('Added ' + plural(res.bars.length, 'bridge', 'bridges') + (res.remaining ? ', but ' + plural(res.remaining, 'island is', 'islands are') + ' still loose.' : '.'),
+      'Undo', function () { store.undo(); });
+  });
+  $('btnClearBridges').addEventListener('click', function () {
+    var n = store.removeBridges();
+    if (n) toast('Removed ' + plural(n, 'bridge', 'bridges') + '.', 'Undo', function () { store.undo(); });
+  });
+
+  /* ---------- render loop ---------- */
 
   var raf = 0;
   function renderAll() {
@@ -130,9 +258,10 @@
   }
   store.subscribe(function (kind) {
     if (!raf) raf = requestAnimationFrame(renderAll);
-    if (kind === 'change') saveSoon();
+    if (kind === 'change') { saveSoon(); scheduleAnalysis(); }
   });
   renderAll();
+  scheduleAnalysis();
 
   /* ---------- toast ---------- */
 

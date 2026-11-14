@@ -157,6 +157,85 @@ test('starter and random docs are valid for both fold types', () => {
   }
 });
 
+test('alignTo center: x becomes 0, rotation becomes 0, height is kept', () => {
+  const st = ST.createStore(ST.defaultDoc());
+  const o = st.addShape('heart');
+  st.patch(o.id, { x: 7, y: -40, rot: 123 });
+  st.alignTo(o.id, 'center');
+  assert.equal(st.get(o.id).x, 0);
+  assert.equal(st.get(o.id).rot, 0);
+  assert.equal(st.get(o.id).y, -40);
+  st.undo();
+  assert.equal(st.get(o.id).x, 7);
+  assert.equal(st.get(o.id).rot, 123);
+});
+
+for (const arms of [4, 6]) {
+  const H = G.halfAngle(arms);
+  const perpDist = (edgeSign, p) => {                       // signed distance of p from an edge line, positive = inside the wedge
+    const n = edgeSign < 0 ? [Math.cos(H), -Math.sin(H)] : [-Math.cos(H), -Math.sin(H)];
+    return p[0] * n[0] + p[1] * n[1];
+  };
+  for (const mode of ['left', 'right']) {
+    const sg = mode === 'left' ? -1 : 1;
+    test(`alignTo ${mode} edge, ${arms} arms: rotation is the edge angle and the shape sits on the fold`, () => {
+      const st = ST.createStore(Object.assign(ST.defaultDoc(), { arms }));
+      const o = st.addShape('heart');
+      st.patch(o.id, { x: 3, y: -50, rot: 77 });
+      st.alignTo(o.id, mode);
+      const a = st.get(o.id);
+      assert.ok(Math.abs(((a.rot + 180) % 360) - 180 - sg * H * 180 / Math.PI) < 1e-9, 'rot = ' + a.rot);
+      assert.ok(Math.abs(perpDist(sg, [a.x, a.y])) < 1e-9, 'centre lies on the fold line');
+      // the shape's own vertical axis runs along the fold: its top-centre is also on the line
+      const m = G.objectMatrix(a);
+      assert.ok(Math.abs(perpDist(sg, G.apply(m, [0, -0.5]))) < 1e-9, 'top of the shape is on the fold');
+      assert.ok(Math.abs(perpDist(sg, G.apply(m, [0, 0.5]))) < 1e-9, 'bottom of the shape is on the fold');
+      // distance from the tip is kept (projection of the old position onto the edge)
+      const u = [sg * Math.sin(H), -Math.cos(H)];
+      assert.ok(Math.abs((a.x * u[0] + a.y * u[1]) - (3 * u[0] + -50 * u[1])) < 1e-9);
+    });
+
+    test(`alignTo ${mode} edge inside, ${arms} arms: side of the shape touches the fold from within`, () => {
+      const st = ST.createStore(Object.assign(ST.defaultDoc(), { arms }));
+      const o = st.addShape('square');
+      st.patch(o.id, { x: 0, y: -45, rot: 10, sx: 9, sy: 14 });
+      st.alignTo(o.id, mode, { flush: true });
+      const a = st.get(o.id), m = G.objectMatrix(a);
+      const outerSide = sg < 0 ? -0.5 : 0.5;               // the local x side that should lie on the fold
+      [-0.5, 0, 0.5].forEach(ly => assert.ok(Math.abs(perpDist(sg, G.apply(m, [outerSide, ly]))) < 1e-9, 'side point on the fold'));
+      [-0.5, 0, 0.5].forEach(ly => assert.ok(perpDist(sg, G.apply(m, [-outerSide, ly])) > 8.9, 'far side is a full width inside'));
+    });
+  }
+}
+
+test('alignTo ignores unknown modes and ids', () => {
+  const st = ST.createStore(ST.defaultDoc());
+  const o = st.addShape('circle');
+  const before = JSON.stringify(st.doc);
+  st.alignTo(o.id, 'sideways');
+  st.alignTo('nope', 'center');
+  assert.equal(JSON.stringify(st.doc), before);
+});
+
+test('addObjects adds drafts as one undo step and keeps the selection', () => {
+  const st = ST.createStore(ST.defaultDoc());
+  const a = st.addShape('circle');
+  const added = st.addObjects([
+    { shapeId: 'square', x: 1, y: -30, sx: 10, sy: 3, rot: 20, role: 'keep', label: 'Bridge', bridge: true },
+    { shapeId: 'square', x: 2, y: -31, sx: 10, sy: 3, rot: 40, role: 'keep', label: 'Bridge', bridge: true }
+  ]);
+  assert.equal(added.length, 2);
+  assert.equal(st.selectedId, a.id);
+  assert.ok(added.every(o => o.bridge && o.label === 'Bridge' && o.role === 'keep'));
+  assert.equal(new Set(st.doc.objects.map(o => o.id)).size, 3, 'unique ids');
+  assert.equal(st.removeBridges(), 2);
+  assert.equal(st.doc.objects.length, 1);
+  st.undo();
+  assert.equal(st.doc.objects.length, 3);
+  st.undo();
+  assert.equal(st.doc.objects.length, 1, 'adding both was a single step');
+});
+
 test('object cap is enforced', () => {
   const st = ST.createStore(ST.defaultDoc());
   for (let i = 0; i < ST.MAX_OBJECTS + 5; i++) st.addShape('circle');

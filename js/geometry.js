@@ -143,7 +143,7 @@
     var a = wedgeAngle(n), refl0 = reflection(leftEdgeAngle(n)), out = [];
     for (var k = 0; k < 2 * n; k++) {
       var m = (k % 2 === 0) ? rotation(k * a) : mul(rotation((k + 1) * a), refl0);
-      out.push({ k: k, m: m, mirrored: k % 2 === 1 });
+      out.push({ k: k, m: m, inv: invert(m), mirrored: k % 2 === 1 });
     }
     copyCache[n] = out;
     return out;
@@ -175,8 +175,7 @@
 
   /** Fold any point of the disc back into the base wedge. */
   function foldToWedge(n, p) {
-    var k = sectorIndex(n, p);
-    return apply(invert(copies(n)[k].m), p);
+    return apply(copies(n)[sectorIndex(n, p)].inv, p);
   }
 
   /** The 2n images of a wedge point across the unfolded paper. */

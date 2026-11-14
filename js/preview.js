@@ -17,7 +17,7 @@
 
   /**
    * opts: idPrefix (unique per SVG on the page), showFolds (bool), bg (table color),
-   *       paper (paper color), foldColor.
+   *       paper (paper color), foldColor, overlayHref (problem overlay image, optional).
    */
   function render(svg, doc, opts) {
     opts = opts || {};
@@ -63,6 +63,7 @@
       '</defs>' +
       '<rect x="-110" y="-110" width="220" height="220" fill="' + bg + '"/>' +
       '<circle r="' + R + '" fill="' + paper + '" mask="url(#' + id + '-mask)"/>' +
+      (opts.overlayHref ? '<image href="' + opts.overlayHref + '" x="-100" y="-100" width="200" height="200" preserveAspectRatio="none"/>' : '') +
       folds;
   }
 

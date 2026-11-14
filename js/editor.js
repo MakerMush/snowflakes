@@ -61,14 +61,15 @@
       '<defs>' +
         '<clipPath id="ed-clip"><path d="' + wedgeD + '"/></clipPath>' +
         '<pattern id="ed-grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M10 0H0V10" fill="none" class="ed-gridline"/></pattern>' +
-        '<pattern id="ed-hatch" width="2.4" height="2.4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">' +
-          '<rect width="2.4" height="2.4" fill="#fff"/><line x1="0" y1="0" x2="0" y2="2.4" class="ed-hatchline"/></pattern>' +
+        '<pattern id="ed-hatch" width="1.2" height="1.2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">' +
+          '<rect width="1.2" height="1.2" fill="#fff"/><line x1="0" y1="0" x2="0" y2="1.2" class="ed-hatchline"/></pattern>' +
       '</defs>' +
       '<rect class="ed-bg" x="' + f(vb.x) + '" y="' + f(vb.y) + '" width="' + f(vb.w) + '" height="' + f(vb.h) + '"/>' +
       '<path class="ed-paper" d="' + wedgeD + '"/>' +
       '<path d="' + wedgeD + '" fill="url(#ed-grid)"/>' +
       '<g id="ed-objs" clip-path="url(#ed-clip)"></g>' +
       '<g id="ed-hub" clip-path="url(#ed-clip)"></g>' +
+      '<image id="ed-overlay" x="-100" y="-100" width="200" height="200" preserveAspectRatio="none" clip-path="url(#ed-clip)" visibility="hidden" pointer-events="none"/>' +
       '<path class="ed-edge-arc" d="' + arcD + '"/>' +
       '<path class="ed-edge-fold" d="M0 0L' + f(lx) + ' ' + f(ly) + 'M0 0L' + f(rx) + ' ' + f(ly) + '"/>' +
       '<text class="ed-label" transform="translate(' + f(-mx) + ' ' + f(my) + ') rotate(' + f(angL) + ')" dy="-1.8" text-anchor="middle">FOLD</text>' +
@@ -80,10 +81,20 @@
 
     this.gObjs = svg.querySelector('#ed-objs');
     this.gHub = svg.querySelector('#ed-hub');
+    this.overlay = svg.querySelector('#ed-overlay');
+    this.setOverlay(this.overlayHref || null);
     this.gGhost = svg.querySelector('#ed-ghost');
     this.gSel = svg.querySelector('#ed-sel');
     this.builtArms = n;
     this.measure();
+  };
+
+  /** Show (or hide, with null) the problem overlay: a PNG covering the whole unfolded disc. */
+  Editor.prototype.setOverlay = function (href) {
+    this.overlayHref = href;
+    if (!this.overlay) return;
+    if (href) { this.overlay.setAttribute('href', href); this.overlay.setAttribute('visibility', 'visible'); }
+    else { this.overlay.removeAttribute('href'); this.overlay.setAttribute('visibility', 'hidden'); }
   };
 
   /* ---------- dynamic layers ---------- */
@@ -220,6 +231,7 @@
     }
     else if (k === 'k' || k === 'K') store.setRole(id, o.role === 'cut' ? 'keep' : 'cut');
     else if (k === 'f' || k === 'F') store.toggleFlip(id);
+    else if (k === 'c' || k === 'C') store.alignTo(id, 'center');
     else if (k === '[') store.reorder(id, 'down');
     else if (k === ']') store.reorder(id, 'up');
   };

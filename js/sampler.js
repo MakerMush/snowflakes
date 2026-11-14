@@ -23,24 +23,32 @@
     doc.objects.forEach(function (o) {
       var sh = S.resolve(o);
       if (!sh) return;
-      items.push({ inv: G.invert(G.objectMatrix(o)), polys: sh.polys, keep: o.role === 'keep' });
+      var bb = G.polygonBBox([].concat.apply([], sh.polys));      // cheap reject before the exact test
+      items.push({ inv: G.invert(G.objectMatrix(o)), polys: sh.polys, keep: o.role === 'keep',
+        x0: bb.x0, x1: bb.x1, y0: bb.y0, y1: bb.y1 });
     });
     var hubR2 = doc.hub ? doc.hubR * doc.hubR : -1;
     var R2 = G.R * G.R;
+
+    /** Paper test for a point that is already inside the base wedge (no folding needed). */
+    function paperAtWedge(x, y) {
+      for (var i = items.length - 1; i >= 0; i--) {   // last painted wins, like the preview
+        var it = items[i], m = it.inv;
+        var lx = m[0] * x + m[2] * y + m[4], ly = m[1] * x + m[3] * y + m[5];
+        if (lx < it.x0 || lx > it.x1 || ly < it.y0 || ly > it.y1) continue;
+        if (G.pointInPolys(it.polys, lx, ly)) return it.keep;
+      }
+      return true;
+    }
 
     function paperAt(x, y) {
       var r2 = x * x + y * y;
       if (r2 > R2) return null;
       if (r2 <= hubR2) return true;
       var q = G.foldToWedge(n, [x, y]);
-      for (var i = items.length - 1; i >= 0; i--) {   // last painted wins, like the preview
-        var it = items[i];
-        var l = G.apply(it.inv, q);
-        if (G.pointInPolys(it.polys, l[0], l[1])) return it.keep;
-      }
-      return true;
+      return paperAtWedge(q[0], q[1]);
     }
-    return { paperAt: paperAt };
+    return { paperAt: paperAt, paperAtWedge: paperAtWedge, hubR2: hubR2 };
   }
 
   /** Fraction of the paper that is cut away (0..1), sampled on a grid over the wedge. */

@@ -29,6 +29,9 @@
   <symbol id="i-shuffle" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h4l10 10h4"/><path d="M3 17h4l3-3"/><path d="m14 10 3-3h4"/><path d="m19 5 2 2-2 2"/><path d="m19 15 2 2-2 2"/></g></symbol>
   <symbol id="i-reset" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 3-6.2"/><path d="M4 4v5h5"/></g></symbol>
   <symbol id="i-print" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9V3h10v6"/><rect x="4" y="9" width="16" height="8" rx="2"/><path d="M7 14h10v7H7z"/></g></symbol>
+  <symbol id="i-ac" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20" stroke-dasharray="2 2.4"/><rect x="7.5" y="6" width="9" height="12" rx="1.5"/></g></symbol>
+  <symbol id="i-al" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 3v18"/><rect x="4.5" y="7" width="12" height="10" rx="1.5"/></g></symbol>
+  <symbol id="i-ar" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 3v18"/><rect x="7.5" y="7" width="12" height="10" rx="1.5"/></g></symbol>
   <symbol id="i-geo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20 12 4l9 16z"/><path d="M12 4v16" stroke-dasharray="2 2.4"/></g></symbol>
 </svg>
 
@@ -89,6 +92,7 @@
 
     <div class="selbar" id="selbar">
       <div class="sel-name mono" id="selName">Nothing selected</div>
+      <div class="sel-info mono" id="selInfo"></div>
       <div class="seg seg-sm" role="radiogroup" aria-label="Cut or keep">
         <button type="button" role="radio" aria-checked="true" id="roleCut" data-role="cut" title="This shape is cut away (K toggles)">Cut</button>
         <button type="button" role="radio" aria-checked="false" id="roleKeep" data-role="keep" title="Paper stays here, even over cuts (K toggles)">Keep</button>
@@ -99,6 +103,17 @@
         <button type="button" class="icon-btn" id="btnFront" title="Bring forward (])" aria-label="Bring forward"><svg class="ic"><use href="#i-front"/></svg></button>
         <button type="button" class="icon-btn" id="btnBack" title="Send back ([)" aria-label="Send back"><svg class="ic"><use href="#i-back"/></svg></button>
         <button type="button" class="icon-btn danger" id="btnDel" title="Delete (Delete key)" aria-label="Delete"><svg class="ic"><use href="#i-trash"/></svg></button>
+      </div>
+    </div>
+
+    <div class="alignbar" id="alignbar">
+      <span class="mono lab">Align</span>
+      <button type="button" class="btn btn-sm" id="alignCenter"><svg class="ic"><use href="#i-ac"/></svg><span>Center</span></button>
+      <button type="button" class="btn btn-sm" id="alignLeft"><svg class="ic"><use href="#i-al"/></svg><span>Left edge</span></button>
+      <button type="button" class="btn btn-sm" id="alignRight"><svg class="ic"><use href="#i-ar"/></svg><span>Right edge</span></button>
+      <div class="seg seg-sm" role="radiogroup" aria-label="Edge style">
+        <button type="button" role="radio" aria-checked="true" data-edge="fold" title="Center the shape on the fold line. The mirrored copy completes a symmetric shape.">On the fold</button>
+        <button type="button" role="radio" aria-checked="false" data-edge="inside" title="Keep the shape inside the wedge with its side touching the fold.">Inside</button>
       </div>
     </div>
 
@@ -123,14 +138,32 @@
       </div>
     </div>
 
-    <div class="card card-soon">
-      <h2 class="panel-title mono">Complexity <span class="tag">soon</span></h2>
-      <div class="meter" aria-hidden="true"><i></i></div>
-      <p class="muted">How hard it will be to cut, from "easy with kid scissors" to "bring a craft knife".</p>
+    <div class="card" id="cardCx">
+      <h2 class="panel-title mono">Complexity</h2>
+      <div class="cx-head">
+        <div class="cx-score" aria-live="polite"><b id="cxNum">1</b><span>/10</span></div>
+        <div class="cx-text">
+          <div class="cx-label" id="cxLabel">Easy peasy</div>
+          <div class="cx-tool"><span class="mono">Recommended tool</span><strong id="cxTool">Kid scissors</strong></div>
+        </div>
+      </div>
+      <div class="meter10" id="meter10" role="img" aria-label="Complexity 1 out of 10"></div>
+      <p class="cx-note" id="cxNote"></p>
+      <ul class="drivers" id="cxDrivers"></ul>
     </div>
-    <div class="card card-soon">
-      <h2 class="panel-title mono">Cut checks <span class="tag">soon</span></h2>
-      <p class="muted">Flags islands and slivers that would fall out or tear, with one-click bridges.</p>
+
+    <div class="card" id="cardChecks">
+      <h2 class="panel-title mono">Cut checks <span class="tag" id="checksTag">checking</span></h2>
+      <div class="tool-pick">
+        <span class="mono">Cutting with</span>
+        <div class="seg seg-sm" role="radiogroup" aria-label="Cutting tool" id="toolSeg"></div>
+      </div>
+      <ul class="issues" id="issues"></ul>
+      <div class="check-actions">
+        <button type="button" class="btn" id="btnBridges">Add bridges</button>
+        <button type="button" class="btn ghost" id="btnClearBridges" hidden>Remove bridges</button>
+      </div>
+      <label class="check small"><input type="checkbox" id="showProblems" checked> Show problems on the canvas</label>
     </div>
   </aside>
 </main>
@@ -150,6 +183,7 @@
 <script src="js/geometry.js"></script>
 <script src="js/shapes.js"></script>
 <script src="js/sampler.js"></script>
+<script src="js/analyze.js"></script>
 <script src="js/state.js"></script>
 <script src="js/preview.js"></script>
 <script src="js/editor.js"></script>
