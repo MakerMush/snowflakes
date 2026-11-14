@@ -24,7 +24,7 @@
     var id = opts.idPrefix || 'pv';
     var bg = opts.bg || '#0f161d';
     var paper = opts.paper || '#ffffff';
-    var n = doc.arms, R = G.R;
+    var n = doc.arms, R = G.R, build = doc.mode === 'build';
     var copies = G.copies(n);
 
     var content = doc.objects.map(function (o) {
@@ -58,11 +58,12 @@
         '<g id="' + id + '-w" clip-path="url(#' + id + '-clip)">' + content + '</g>' +
         '<mask id="' + id + '-mask" maskUnits="userSpaceOnUse" x="-110" y="-110" width="220" height="220">' +
           '<rect x="-110" y="-110" width="220" height="220" fill="#000"/>' +
-          '<circle r="' + R + '" fill="#fff"/>' + uses + hub +
+          '<circle r="' + R + '" fill="' + (build ? '#000' : '#fff') + '"/>' + uses + hub +
         '</mask>' +
       '</defs>' +
       '<rect x="-110" y="-110" width="220" height="220" fill="' + bg + '"/>' +
       '<circle r="' + R + '" fill="' + paper + '" mask="url(#' + id + '-mask)"/>' +
+      (build ? '<circle r="' + R + '" fill="none" stroke="#3a4a5a" stroke-width="0.5" stroke-dasharray="1.6 2.2"/>' : '') +
       (opts.overlayHref ? '<image href="' + opts.overlayHref + '" x="-100" y="-100" width="200" height="200" preserveAspectRatio="none"/>' : '') +
       folds;
   }

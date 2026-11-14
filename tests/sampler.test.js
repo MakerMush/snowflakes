@@ -93,3 +93,43 @@ test('cutFraction: covering the whole wedge cuts nearly everything, half-ish for
   const expected = (Math.PI * 100) / (Math.PI * 100 * 100 / 12);   // circle area over wedge area
   assert.ok(Math.abs(f - expected) < 0.01, `fraction ${f} vs expected ${expected}`);
 });
+
+test('build mode: nothing is paper until a keep shape adds it, and cuts carve the paper back out', () => {
+  const SM = require('../js/sampler'), ST2 = require('../js/state');
+  const doc = ST2.defaultDoc(); doc.mode = 'build'; doc.hub = false;
+  assert.equal(SM.compile(doc).paperAt(0, -50), false, 'empty build wedge is all cut away');
+  assert.equal(SM.compile(doc).paperAt(0, -120), null, 'outside the disc stays outside');
+  doc.objects.push({ id: 'o1', type: 'shape', shapeId: 'circle', x: 0, y: -50, sx: 20, sy: 20, rot: 0, flip: false, role: 'keep' });
+  let c = SM.compile(doc);
+  assert.equal(c.paperAt(0, -50), true, 'kept circle is paper');
+  assert.equal(c.paperAt(0, -80), false);
+  doc.objects.push({ id: 'o2', type: 'shape', shapeId: 'circle', x: 0, y: -50, sx: 8, sy: 8, rot: 0, flip: false, role: 'cut' });
+  c = SM.compile(doc);
+  assert.equal(c.paperAt(0, -50), false, 'a cut on top carves a hole in the kept shape');
+  assert.equal(c.paperAt(0, -58), true);
+  // symmetry: the unfolded flake is still 12 images of the same point
+  const G2 = require('../js/geometry');
+  const pts = G2.orbit(6, [3, -52]);
+  assert.equal(new Set(pts.map(p => c.paperAt(p[0], p[1]))).size, 1);
+  doc.hub = true; doc.objects = [];
+  assert.equal(SM.compile(doc).paperAt(0, -3), true, 'the protected center is paper in build mode too');
+  assert.equal(SM.compile(doc).paperAt(0, -30), false);
+});
+
+test('indexed point-in-shape tests agree exactly with the plain even-odd test (big traced shapes)', () => {
+  const SM2 = require('../js/sampler'), G2 = require('../js/geometry');
+  // a wiggly ring with a hole, 600 points per outline
+  const ring = (r, wob, n) => Array.from({ length: n }, (_, i) => { const a = (i / n) * Math.PI * 2, rr = r + wob * Math.sin(a * 9); return [rr * Math.cos(a), rr * Math.sin(a)]; });
+  const polys = [ring(0.45, 0.04, 600), ring(0.2, 0.03, 600)];
+  const bb = G2.polygonBBox([].concat.apply([], polys));
+  const t = SM2.makeTester(polys, bb);
+  let seed = 3; const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
+  for (let i = 0; i < 20000; i++) {
+    const x = (rnd() - 0.5) * 1.2, y = (rnd() - 0.5) * 1.2;
+    assert.equal(t(x, y), G2.pointInPolys(polys, x, y), `(${x.toFixed(3)}, ${y.toFixed(3)})`);
+  }
+  assert.equal(t(0, -5), false, 'far outside');
+  // small shapes take the direct path and still work
+  const tri = [[[-0.5, 0.5], [0.5, 0.5], [0, -0.5]]];
+  assert.equal(SM2.makeTester(tri, G2.polygonBBox(tri[0]))(0, 0.2), true);
+});

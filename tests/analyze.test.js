@@ -209,3 +209,56 @@ test('distance transform and components behave on a known picture', () => {
   assert.equal(d[2 * N + 2], 0);
   assert.equal(d[2 * N + 8], 9);                               // squared distance: the nearest block pixel is 3 columns away (column 5)
 });
+
+function mkBuild(arms, objs, extra) {
+  return Object.assign(mk(arms, objs.map(o => Object.assign({ role: 'keep' }, o)), extra), { mode: 'build' });
+}
+
+test('build mode: an empty wedge does not crash and is trivially easy', () => {
+  for (const hub of [true, false]) {
+    const a = AN.analyze(mkBuild(6, [], { hub }));
+    assert.equal(a.stats.islands, 0);
+    assert.ok(a.report.score >= 1 && a.report.score <= 10);
+  }
+});
+
+test('build mode: a shape joined to the center is fine, a floating one is an island with 12 pieces', () => {
+  const joined = AN.analyze(mkBuild(6, [{ shapeId: 'capsule', x: 0, y: -20, sx: 6, sy: 30 }]));
+  assert.equal(joined.stats.islands, 0, 'capsule touches the protected center');
+  assert.equal(joined.stats.fallsApart, false);
+  const floating = AN.analyze(mkBuild(6, [{ shapeId: 'circle', x: 0, y: -60, sx: 14, sy: 14 }], { hub: false }));
+  assert.equal(floating.stats.islands, 1);
+  assert.equal(floating.stats.islandPieces, 12);
+  const withHub = AN.analyze(mkBuild(6, [{ shapeId: 'circle', x: 0, y: -60, sx: 14, sy: 14 }]));
+  assert.equal(withHub.stats.islands, 2, 'the floating circle and the center are separate pieces');
+});
+
+test('build mode: bridges link floating pieces back to the center', () => {
+  const doc = mkBuild(6, [
+    { shapeId: 'circle', x: 0, y: -45, sx: 14, sy: 14 },
+    { shapeId: 'diamond', x: 0, y: -75, sx: 9, sy: 18 }
+  ]);
+  const res = AN.autoBridge(doc, 0);
+  assert.ok(res.bars.length >= 1);
+  assert.equal(res.remaining, 0);
+  const st = ST.createStore(doc);
+  st.addObjects(res.bars);
+  assert.equal(AN.analyze(st.doc).stats.islands, 0);
+  assert.equal(st.doc.mode, 'build');
+});
+
+test('build mode: thin arms are flagged as thin paper for the weakest tool', () => {
+  const a = AN.analyze(mkBuild(6, [{ shapeId: 'square', x: 0, y: -45, sx: 2.2, sy: 40 }]), { tool: 0 });
+  assert.ok(a.stats.thinPaper >= 1);
+  assert.equal(AN.analyze(mkBuild(6, [{ shapeId: 'square', x: 0, y: -45, sx: 6, sy: 40 }]), { tool: 0 }).stats.thinPaper, 0);
+});
+
+test('build mode: the same shapes as a cut design give the complementary flake', () => {
+  const objs = [{ shapeId: 'circle', x: 0, y: -50, sx: 16, sy: 16 }];
+  const cutDoc = mk(6, objs.map(o => Object.assign({ role: 'cut' }, o)), { hub: false });
+  const buildDoc = mkBuild(6, objs, { hub: false });
+  const c = AN.analyze(cutDoc), b = AN.analyze(buildDoc);
+  let both = 0, total = 0;
+  for (let i = 0; i < c.N * c.N; i++) if (c.grid.inDisc[i]) { total++; if (c.paper[i] === b.paper[i]) both++; }
+  assert.ok(both / total < 0.002, 'every pixel is paper in exactly one of the two');
+});

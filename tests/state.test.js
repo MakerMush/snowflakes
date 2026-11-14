@@ -241,3 +241,75 @@ test('object cap is enforced', () => {
   for (let i = 0; i < ST.MAX_OBJECTS + 5; i++) st.addShape('circle');
   assert.equal(st.doc.objects.length, ST.MAX_OBJECTS);
 });
+
+test('mode defaults to cut, sanitizes bad values, and survives a save/load round trip', () => {
+  assert.equal(ST.defaultDoc().mode, 'cut');
+  assert.equal(ST.sanitize({ mode: 'weird' }).mode, 'cut');
+  assert.equal(ST.sanitize({ mode: 'build' }).mode, 'build');
+  const st = ST.createStore(Object.assign(ST.defaultDoc(), { mode: 'build' }));
+  assert.deepEqual(ST.createStore(JSON.parse(st.serialize())).doc, st.doc);
+});
+
+test('setMode starts a fresh wedge in one undoable step', () => {
+  const st = ST.createStore(ST.starterDoc());
+  assert.equal(st.setMode('nope'), false);
+  assert.equal(st.setMode('cut'), false, 'already in cut mode');
+  assert.equal(st.setMode('build'), true);
+  assert.equal(st.doc.mode, 'build');
+  assert.equal(st.doc.objects.length, 0);
+  assert.equal(st.selectedId, null);
+  st.undo();
+  assert.equal(st.doc.mode, 'cut');
+  assert.equal(st.doc.objects.length, 4, 'the old design is back');
+  st.redo();
+  assert.equal(st.doc.mode, 'build');
+});
+
+test('new shapes are keep in build mode and cut in cut mode, unless told otherwise', () => {
+  const st = ST.createStore(ST.defaultDoc());
+  assert.equal(st.addShape('circle').role, 'cut');
+  st.setMode('build');
+  assert.equal(st.addShape('circle').role, 'keep');
+  assert.equal(st.addShape('circle', { role: 'cut' }).role, 'cut');
+});
+
+test('random build flakes are made of keep shapes', () => {
+  const d = ST.randomDoc(6, seeded(4), 'build');
+  assert.equal(d.mode, 'build');
+  assert.ok(d.objects.every(o => o.role === 'keep'));
+  assert.equal(ST.randomDoc(6, seeded(4)).mode, 'cut');
+});
+
+test('addTrace adds a traced outline as one undoable step, role by mode, and rejects junk', () => {
+  const st = ST.createStore(ST.defaultDoc());
+  const polys = [[[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]], [[-0.2, -0.2], [0.2, -0.2], [0.2, 0.2], [-0.2, 0.2]]];
+  const o = st.addTrace(polys, 1.5, 'Photo trace');
+  assert.ok(o && o.polys.length === 2 && o.name === 'Photo trace' && o.role === 'cut');
+  assert.ok(Math.abs(o.sx / o.sy - 1.5) < 1e-9, 'keeps the photo proportions');
+  assert.equal(st.selectedId, o.id);
+  st.undo();
+  assert.equal(st.doc.objects.length, 0);
+  st.setMode('build');
+  assert.equal(st.addTrace(polys, 1, 'x').role, 'keep');
+  assert.equal(st.addTrace([[[0, 0], [1, 0]]], 1, 'bad'), null);
+  assert.equal(st.addTrace([], 1, 'bad'), null);
+  // survives save and load
+  const again = ST.createStore(JSON.parse(st.serialize()));
+  assert.deepEqual(again.doc.objects[0].polys, st.doc.objects[0].polys);
+});
+
+test('labels and names are plain text, and a document cannot carry unlimited traced points', () => {
+  const evil = '<img src=x onerror="alert(1)">&\u0007`';
+  const d = ST.sanitize({ arms: 6, objects: [
+    { id: 'o1', shapeId: 'circle', x: 0, y: -50, sx: 9, sy: 9, label: evil },
+    { id: 'o2', polys: [[[0, 0], [1, 0], [1, 1]]], aspect: 1, name: evil },
+    { id: 'o3', shapeId: 'circle', label: '<<>>' }
+  ] });
+  d.objects.forEach((o) => assert.ok(!/[<>&"'`\u0000-\u001f]/.test((o.label || '') + (o.name || '')), 'no markup characters survive'));
+  assert.equal(d.objects[0].label, 'img src=x onerror=alert(1)'.slice(0, 40));
+  assert.equal(d.objects[2].label, undefined, 'a label that is only junk is dropped');
+  const ring = (n) => Array.from({ length: n }, (_, i) => [Math.cos(i), Math.sin(i)]);
+  const many = ST.sanitize({ arms: 6, objects: Array.from({ length: 30 }, (_, i) => ({ id: 'o' + (i + 1), polys: [ring(4000)], aspect: 1 })) });
+  assert.ok(many.objects.reduce((a, o) => a + o.polys[0].length, 0) <= 40000);
+  assert.ok(many.objects.length >= 5 && many.objects.length < 30);
+});
