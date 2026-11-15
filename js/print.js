@@ -344,6 +344,8 @@
   return {
     layout: layout, toSVG: toSVG, toPDF: toPDF, fileName: fileName,
     outlines: outlines, splitRim: splitRim, foldRays: foldRays, foldStepsInfo: foldStepsInfo,
-    PAGE_W: PAGE_W, PAGE_H: PAGE_H, DISC_CENTER: [CX, CY], PT_PER_UNIT: K
+    PAGE_W: PAGE_W, PAGE_H: PAGE_H, DISC_CENTER: [CX, CY], PT_PER_UNIT: K,
+    draw: { circleOps: circleOps, arcOps: arcOps, sectorOps: sectorOps, polyOps: polyOps, line: line, text: text, wrap: wrap,
+      qrItems: qrItems, displayUrl: displayUrl, colors: { BLUE: BLUE, INK: INK, LINE: LINE, SHADE: SHADE, TINT: TINT, MUTED: MUTED, FAINT: FAINT } }
   };
 });

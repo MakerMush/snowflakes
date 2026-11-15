@@ -3,7 +3,7 @@
 Design a paper snowflake, watch it unfold live, then print a fold-and-cut template.
 Plain HTML, CSS and JavaScript. No build step, no dependencies, no server.
 
-Status: **phase 4 of 6** (printable template and PDF, multi-select and groups, photo tracing, cut checks, auto bridges, complexity score, align tools, four presets, Build mode). See the roadmap below.
+Status: **phase 5 of 6** (geometry mode with worksheet and answer key, printable template and PDF, multi-select and groups, photo tracing, cut checks, auto bridges, complexity score, align tools, five presets, Build mode). See the roadmap below.
 
 ## Run it
 
@@ -72,6 +72,23 @@ That address is also what the printed QR code will point to. If the address chan
   ordinary designs made only from library shapes, so you can keep editing.
 - The design autosaves in your browser. **Reset** clears it (and offers Undo). **Surprise me** makes a random one.
 
+## Geometry mode (phase 5)
+
+The **Geometry mode** button in the top bar opens a dialog that works on whatever is on your wedge right now.
+The numbers for the snowflake (arms, layers, wedge angle, mirror lines, smallest turn, symmetry group) sit under the picture.
+
+- **Unfold**: Play, Next, Back or the slider open the wedge one sector at a time. Each new sector swings over the fold line it
+  shares with its neighbor, so you can see that every fold line is a mirror. The caption counts the wedges and degrees.
+  "Show the mirror lines" draws the n lines. The last frame is the same picture as the regular preview.
+- **Symmetry**: **Turn** rotates the whole flake with a slider (or jumps to the next match). The flake lands on itself
+  every 360/n degrees and the caption says when it does. **Flip** swings the flake over any of the n mirror lines. A blue
+  flag on the rim shows where things moved. Animations are skipped when the computer asks for reduced motion.
+- **Worksheet**: a two page student worksheet built around the student's own snowflake, plus an answer key (the same pages
+  with the answers in blue, and a teacher notes page). Questions cover layers, wedge angle, creases and mirror lines, turns,
+  counting symmetries (D4 or D6), counting holes made by a cutout in the wedge, a notch on a fold, following a point through
+  all 2n sectors, and a prediction table for other arm counts. Everything is computed from the arm count and the design, so
+  the key always matches. Download either as a PDF. Names and dates lines can be turned off.
+
 ## Checks and complexity (phase 2)
 
 The design is rasterized at full-disc size using the same fold math as the preview, then analyzed:
@@ -97,9 +114,11 @@ times: even copies are rotations, odd copies are mirror images (the dihedral gro
 - `js/state.js` the design document, undo/redo, validation, random flakes (pure, tested)
 - `js/trace.js` photo tracing: threshold, cleanup, outline following, smoothing, simplification (pure, tested)
 - `js/photo.js` the Photo tab: loading, live sliders, preview, adding the outline to the wedge
-- `js/presets.js` the four preset layouts (plain data, loaded through the same sanitizer as saved designs)
+- `js/presets.js` the five preset layouts (plain data, loaded through the same sanitizer as saved designs)
 - `js/analyze.js` islands, thin features, cut length, complexity score, tool recommendation, auto bridges
-- `js/preview.js` draws the unfolded flake as an SVG mask
+- `js/preview.js` draws the unfolded flake as an SVG mask, and as separate swinging sectors for geometry mode
+- `js/worksheet.js` the symmetry worksheet and answer key as draw lists (same format and PDF writer as the print template)
+- `js/geolab.js` the Geometry mode dialog: unfold animation, turn and flip demos, worksheet preview and download
 - `js/editor.js` the wedge canvas: selection, drag, resize, rotate, keyboard
 - `js/app.js` wires the page together; `js/config.js` holds the site address
 
@@ -118,7 +137,8 @@ sampler, the analyzer (islands, thin features, score and tool, bridge repair, sp
 must load cleanly and come back cuttable with kid scissors), multi-select and groups (including move, scale and
 rotate of a selection), the QR encoder (Reed-Solomon and format bits against published values, plus a decode check when
 Python with OpenCV is installed), the PDF writer (valid cross-reference table, escaping, metrics) and the print layout
-(true scale, margins, QR content, text safety).
+(true scale, margins, QR content, text safety), and geometry mode (the flap matrices land on the real unfold,
+mirror lines, the point-following angles checked against the matrices, and the worksheet and key text, margins and PDFs).
 
 ## Safety notes
 
@@ -135,5 +155,5 @@ Python with OpenCV is installed), the PDF writer (valid cross-reference table, e
 2. Island, sliver and tiny-hole checks, auto bridges, complexity meter, align tools (done)
 3. Photo upload and tracing (threshold, noise and smoothing sliders) (done)
 4. Printable template: fold guide, cut lines, scale bar, QR code, PDF; multi-select and groups (done)
-5. Geometry mode (symmetry group, angles, unfold animation, worksheet with answer key)
+5. Geometry mode: symmetry group, angles, unfold animation, worksheet with answer key (done)
 6. Polish: share link, text shapes, SVG export, accessibility pass

@@ -374,6 +374,7 @@
   }
 
   SF.printUI.init({ store: store, toast: toast, getTool: function () { return tool; } });
+  SF.geoLab.init({ store: store, toast: toast, getTool: function () { return tool; } });
   SF.photoPanel.init({ store: store, toast: toast, onAdded: function () { if (isNarrow()) go('design'); } });
 
   /* ---------- phone tabs ---------- */

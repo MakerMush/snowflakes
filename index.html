@@ -66,7 +66,7 @@
     <button type="button" class="btn" id="btnSurprise" title="Start from a random flake"><svg class="ic"><use href="#i-shuffle"/></svg><span class="lbl">Surprise me</span></button>
     <button type="button" class="btn" id="btnReset" title="Clear the template"><svg class="ic"><use href="#i-reset"/></svg><span class="lbl">Reset</span></button>
     <span class="divider" aria-hidden="true"></span>
-    <button type="button" class="btn soon" id="btnGeo" disabled title="Geometry mode arrives in a later phase"><svg class="ic"><use href="#i-geo"/></svg><span class="lbl">Geometry mode</span></button>
+    <button type="button" class="btn" id="btnGeo" title="Geometry mode: watch the unfold, explore the symmetry, download a worksheet"><svg class="ic"><use href="#i-geo"/></svg><span class="lbl">Geometry mode</span></button>
     <button type="button" class="btn primary" id="btnPrint" title="Print or save the fold-and-cut template (US Letter)"><svg class="ic"><use href="#i-print"/></svg><span class="lbl">Print template</span></button>
   </div>
 </header>
@@ -245,6 +245,72 @@
     <button type="button" class="btn primary" id="printGo"><svg class="ic"><use href="#i-print"/></svg><span>Print</span></button>
   </div>
  </dialog>
+
+ <dialog class="dlg dlg-geo" id="geoDlg" aria-labelledby="geoTitle">
+  <div class="dlg-head">
+    <h2 id="geoTitle">Geometry mode</h2>
+    <button type="button" class="icon-btn" id="geoClose" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></g></svg></button>
+  </div>
+  <div class="dlg-body">
+    <div class="geo-stage">
+      <div class="geo-view" id="geoViewBox"><svg id="geoView" role="img" aria-label="Your snowflake"></svg></div>
+      <div class="dlg-preview" id="geoSheet" aria-label="Worksheet preview" hidden></div>
+      <ul class="geo-facts" id="geoFacts" aria-label="The numbers for this snowflake"></ul>
+    </div>
+    <div class="dlg-side geo-side">
+      <div class="seg seg-sm" role="radiogroup" aria-label="Geometry activity">
+        <button type="button" role="radio" aria-checked="true" data-gtab="unfold">Unfold</button>
+        <button type="button" role="radio" aria-checked="false" data-gtab="symmetry">Symmetry</button>
+        <button type="button" role="radio" aria-checked="false" data-gtab="sheet">Worksheet</button>
+      </div>
+
+      <div id="gpUnfold">
+        <p class="dlg-note">Every wedge is a mirror image of its neighbor. Watch each fold line act as a mirror.</p>
+        <div class="geo-row">
+          <button type="button" class="btn btn-sm" id="gStepBack" aria-label="Back one wedge">Back</button>
+          <button type="button" class="btn btn-sm primary" id="gPlay">Play</button>
+          <button type="button" class="btn btn-sm" id="gStepFwd" aria-label="Open one more wedge">Next</button>
+        </div>
+        <label class="range geo-range" for="gUnfoldRange"><span class="mono">unfold</span>
+          <input type="range" id="gUnfoldRange" min="0" max="1" step="0.01" value="0"></label>
+        <label class="check"><input type="checkbox" id="gShowLines"> Show the mirror lines</label>
+        <p class="dlg-note geo-cap" id="gCap" aria-live="polite"></p>
+      </div>
+
+      <div id="gpSymmetry" hidden>
+        <p class="dlg-note">A symmetry is a move that lands the snowflake exactly on top of itself. The blue flag shows where things went.</p>
+        <div class="seg seg-sm" role="radiogroup" aria-label="Kind of move">
+          <button type="button" role="radio" aria-checked="true" data-gmove="turn">Turn</button>
+          <button type="button" role="radio" aria-checked="false" data-gmove="flip">Flip</button>
+        </div>
+        <div id="gTurn">
+          <label class="range geo-range" for="gTurnRange"><span class="mono">turn</span>
+            <input type="range" id="gTurnRange" min="0" max="360" step="1" value="0"></label>
+          <div class="geo-row"><button type="button" class="btn btn-sm" id="gTurnStep">Turn to the next match</button>
+            <button type="button" class="btn btn-sm ghost" id="gTurnReset">Reset</button></div>
+        </div>
+        <div id="gFlip" hidden>
+          <p class="dlg-note mono">Pick a mirror line to flip across:</p>
+          <div class="geo-chips" id="gLines"></div>
+          <button type="button" class="btn btn-sm ghost" id="gFlipReset">Reset</button>
+        </div>
+        <p class="dlg-note geo-cap" id="gSym" aria-live="polite"></p>
+      </div>
+
+      <div id="gpSheet" hidden>
+        <p class="dlg-note">A two page worksheet built from your own snowflake. The answers depend on the number of arms, so the key always matches the worksheet.</p>
+        <div class="seg seg-sm" role="radiogroup" aria-label="Which pages to preview">
+          <button type="button" role="radio" aria-checked="true" data-gsheet="ws">Worksheet</button>
+          <button type="button" role="radio" aria-checked="false" data-gsheet="key">Answer key</button>
+        </div>
+        <label class="check"><input type="checkbox" id="gName" checked> Name and date lines</label>
+        <button type="button" class="btn primary" id="gDlWs"><svg class="ic"><use href="#i-print"/></svg><span>Download worksheet PDF</span></button>
+        <button type="button" class="btn" id="gDlKey"><svg class="ic"><use href="#i-print"/></svg><span>Download answer key PDF</span></button>
+      </div>
+    </div>
+  </div>
+  <div class="dlg-foot"><button type="button" class="btn" id="geoDone">Close</button></div>
+ </dialog>
  <div id="printRoot" aria-hidden="true"></div>
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden>
@@ -264,8 +330,10 @@
 <script src="js/qr.js"></script>
 <script src="js/pdf.js"></script>
 <script src="js/print.js"></script>
+<script src="js/worksheet.js"></script>
 <script src="js/photo.js"></script>
 <script src="js/printui.js"></script>
+<script src="js/geolab.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/app.js"></script>
 </body>

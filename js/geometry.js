@@ -2,7 +2,7 @@
  * geometry.js - the math under the whole app. Pure functions, no DOM.
  *
  * Conventions
- *  - Units: the paper disc has radius R = 100 units (printed at 3.75 in, so 1 unit = 0.0375 in).
+ *  - Units: the paper disc has radius R = 100 units (printed 7.5 in across, so 1 unit = 0.0375 in).
  *  - Screen-style coordinates: x to the right, y DOWN. The folded wedge points UP:
  *    its tip (the paper's center) is at (0,0) and the outer edge arcs across the top.
  *  - n = number of arms (4 or 6). The folded wedge angle is 180/n degrees and the
@@ -245,6 +245,44 @@
     return true;
   }
 
+
+  /* ---------- geometry-class helpers ---------- */
+
+  /**
+   * Matrix for sector k (1..2n-1) while it swings open about the fold line it shares with sector k-1.
+   * t = +1: lying flat on top of sector k-1 (folded). t = 0: edge-on. t = -1: fully open (equals copies(n)[k].m).
+   * The swing squashes the sector toward the hinge, which is how a flap looks seen from above.
+   */
+  function flapMatrix(n, k, t) {
+    var beta = leftEdgeAngle(n) + k * wedgeAngle(n);
+    var hinge = mul(rotation(beta), mul(scaling(1, t), rotation(-beta)));
+    return mul(hinge, copies(n)[k - 1].m);
+  }
+
+  /** The n mirror lines (each a full diameter), sorted by bearing: degrees clockwise from straight up, in [0, 180). */
+  function mirrorLines(n) {
+    var a = wedgeAngle(n), b0 = leftEdgeAngle(n), out = [];
+    for (var j = 0; j < n; j++) {
+      var ang = b0 + j * a, bearing = ((ang / DEG + 90) % 180 + 180) % 180;
+      out.push({ j: j, angle: ang, bearingDeg: Math.round(bearing * 1000) / 1000 });
+    }
+    out.sort(function (p, q) { return p.bearingDeg - q.bearingDeg; });
+    return out.map(function (l, i) { l.label = i + 1; return l; });
+  }
+
+  /** Where a point sitting theta degrees clockwise from the wedge's left edge shows up in every sector, as degrees clockwise from that edge. */
+  function imageAngles(n, thetaDeg) {
+    var a = 180 / n, out = [];
+    for (var k = 0; k < 2 * n; k++) out.push({ sector: k, mirrored: k % 2 === 1, deg: k % 2 === 0 ? k * a + thetaDeg : (k + 1) * a - thetaDeg });
+    return out;
+  }
+
+  /** True when turning the flake by deg degrees lands it back on itself. */
+  function isRotationSymmetry(n, deg) {
+    var step = 360 / n, r = ((deg % step) + step) % step;
+    return r < 1e-6 || step - r < 1e-6;
+  }
+
   return {
     R: R, DEG: DEG, TAU: TAU, clamp: clamp,
     wedgeAngle: wedgeAngle, halfAngle: halfAngle, layerCount: layerCount,
@@ -258,6 +296,7 @@
     foldToWedge: foldToWedge, orbit: orbit,
     objectMatrix: objectMatrix,
     polygonArea: polygonArea, polygonBBox: polygonBBox, pointInPolys: pointInPolys,
-    isSimplePolygon: isSimplePolygon
+    isSimplePolygon: isSimplePolygon,
+    flapMatrix: flapMatrix, mirrorLines: mirrorLines, imageAngles: imageAngles, isRotationSymmetry: isRotationSymmetry
   };
 });
