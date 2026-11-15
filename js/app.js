@@ -85,8 +85,13 @@
     if (!b) return;
     var p = P.get(b.getAttribute('data-preset'));
     store.replaceAll(P.toDoc(p));
-    toast('Loaded ' + p.name + '. Change anything you like.', 'Undo', function () { store.undo(); });
-    if (isNarrow()) go('design');
+    if (p.needsImage) {
+      leftTab('photo');                                   // the next step is adding a picture, so go straight there
+      toast('Loaded ' + p.name + '. Add your picture, then drag or resize it until it touches the frame.', 'Undo', function () { store.undo(); });
+    } else {
+      toast('Loaded ' + p.name + ' in Build mode. Change anything you like.', 'Undo', function () { store.undo(); });
+      if (isNarrow()) go('design');
+    }
   });
 
   /* ---------- top bar ---------- */

@@ -63,10 +63,13 @@ That address is also what the printed QR code will point to. If the address chan
   (30 degrees for 6 arms, 22.5 for 4). Choose **On the fold** to center it on the fold line (the mirrored
   copy completes a symmetric shape) or **Inside** to keep it in the wedge with its side touching the fold.
   Pressing C also centers.
-- **Presets** tab (left panel): four classic fold-and-cut looks to start from: Feather star, Starburst, Leaf fern
-  and Pine fern. Picking one replaces the wedge (a toast offers Undo) and switches to 6 arms. They are ordinary
-  designs made only from library shapes, so you can keep editing. The big cut shape labeled "Gap between arms"
-  is what separates the arms; hide or delete it to see how the preset is built.
+- **Presets** tab (left panel): five ready-made starting points, and every one **starts in Build mode** (the wedge is
+  built from Keep shapes, with a few Cut shapes for holes and notches), so you can see how it is made and keep adding.
+  **Photo medallion** is the "mostly done" one: a web frame with open windows. Loading it jumps to the Photo tab; add a
+  picture (a pet, a logo, initials, the sample tree) and it repeats in all twelve windows. Drag or resize the picture until it
+  touches the frame; anything that does not touch falls out, and the cut checks say so. The others are Feather star,
+  Starburst, Leaf fern and Pine fern. Picking one replaces the wedge (a toast offers Undo) and switches to 6 arms. They are
+  ordinary designs made only from library shapes, so you can keep editing.
 - The design autosaves in your browser. **Reset** clears it (and offers Undo). **Surprise me** makes a random one.
 
 ## Checks and complexity (phase 2)
