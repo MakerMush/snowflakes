@@ -464,16 +464,31 @@ body[data-mode="build"] .sw-keep { background: #fff; border-color: var(--steel-7
 /* ---------- print dialog ---------- */
 
 .dlg {
-  width: min(960px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 0; border: 1.5px solid var(--black);
+  width: min(960px, calc(100vw - 24px)); padding: 0; border: 1.5px solid var(--black);
+  max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px);
+  max-height: calc(var(--vvh, 100dvh) - 24px);   /* --vvh: the visible height, minus the iPad keyboard (app.js) */
   border-radius: 16px; background: var(--white); color: var(--black); overflow: hidden;
 }
 .dlg[open] { display: flex; flex-direction: column; }
+/* Tablets: an edge-pinned sheet. Its size comes from the screen edges, not from vh/dvh numbers,
+   which iPad Safari reports differently from what you can see, so it can't run off the bottom. */
+@media (pointer: coarse) {
+  .dlg:not(.dlg-confirm) {
+    position: fixed; inset: 10px; margin: 0; width: auto; height: auto; max-width: none; max-height: none;
+  }
+  .dlg-welcome:not(.dlg-confirm) { inset: 10px max(10px, calc(50vw - 380px)); bottom: auto; max-height: calc(100% - 20px); }
+}
+/* iPad: while the keyboard is up, pin the dialog to the visible area above it */
+html.kb .dlg[open] {
+  top: calc(var(--vvt, 0px) + 8px); bottom: auto; margin-top: 0; height: auto;
+  max-height: calc(var(--vvh, 100dvh) - 16px);
+}
 .dlg::backdrop { background: rgba(10, 14, 19, .55); }
 .dlg-head, .dlg-foot { flex: none; display: flex; align-items: center; gap: 10px; padding: 12px 16px; }
 .dlg-head { justify-content: space-between; border-bottom: 1.5px solid var(--steel-200); }
 .dlg-head h2 { margin: 0; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; }
 .dlg-foot { justify-content: flex-end; border-top: 1.5px solid var(--steel-200); background: var(--ice-50); }
-.dlg-body { flex: 1; min-height: 0; display: flex; gap: 16px; padding: 14px 16px; overflow: auto; }
+.dlg-body { flex: 1 1 auto; min-height: 0; -webkit-overflow-scrolling: touch; display: flex; gap: 16px; padding: 14px 16px; overflow: auto; }
 .dlg-preview { flex: 1; min-width: 0; display: flex; gap: 14px; overflow: auto; padding: 4px; background: var(--steel-100); border-radius: 10px; align-items: flex-start; }
 .dlg-preview figure { margin: 0; flex: 1 1 0; min-width: 230px; max-width: 420px; }
 .dlg-preview svg { display: block; width: 100%; height: auto; background: #fff; box-shadow: 0 1px 6px rgba(10, 14, 19, .25); }
@@ -491,13 +506,22 @@ body[data-mode="build"] .sw-keep { background: #fff; border-color: var(--steel-7
 .name-field[hidden] { display: none; }
 .name-field label { font-size: 12.5px; font-weight: 600; color: var(--steel-700); }
 .name-field input {
-  height: 36px; padding: 0 10px; font: 600 15px var(--sans); color: var(--black); width: 100%;
+  height: 36px; padding: 0 10px; font: 600 16px var(--sans);   /* 16px or more: iPad Safari won't zoom in on focus */ color: var(--black); width: 100%;
   border: 1.5px solid var(--steel-300); border-radius: var(--radius); background: var(--white);
 }
 .name-field input:focus { border-color: var(--black); }
 .name-field span { font-size: 11.5px; color: var(--steel-500); }
 .dlg-warn b { color: #b3261a; }
 #printRoot { display: none; }
+
+/* short screens (iPad landscape, keyboard up): tighter chrome so the content gets the room */
+@media (max-height: 820px) {
+  .dlg-head, .dlg-foot { padding: 8px 14px; }
+  .dlg-body { padding: 10px 14px; }
+  .dlg-preview figure { max-width: 340px; }
+}
+html.kb .dlg-head, html.kb .dlg-foot { padding: 6px 12px; }
+html.kb .dlg-body { padding: 8px 12px; }
 
 @media (max-width: 760px) {
   .dlg-body { flex-direction: column; }

@@ -68,7 +68,9 @@
       warnings();
       refresh();
       if (dlg.showModal) { if (!dlg.open) dlg.showModal(); } else dlg.setAttribute('open', '');
-      if (ctx.kids && !studentName()) $('printName').focus();
+      // with a mouse, jump straight to the name; on a tablet the keyboard would cover the preview, so let them tap it
+      var fine = root.matchMedia && root.matchMedia('(pointer: fine)').matches;
+      if (ctx.kids && !studentName() && fine) $('printName').focus();
     }
     function close() { if (dlg.close) dlg.close(); else dlg.removeAttribute('open'); }
 

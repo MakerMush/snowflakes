@@ -27,6 +27,9 @@
     this.zoomListeners = [];
     var self = this;
     svg.addEventListener('wheel', function (e) { self.wheel(e); }, { passive: false });
+    ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) {   // Safari: our pinch, not the page zoom
+      svg.addEventListener(t, function (e) { e.preventDefault(); });
+    });
     document.addEventListener('keyup', function (e) { if (e.key === ' ') self.setSpace(false); });
     root.addEventListener('blur', function () { self.setSpace(false); });
     svg.addEventListener('pointerdown', function (e) { self.down(e); });

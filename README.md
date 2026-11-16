@@ -24,8 +24,13 @@ That address is also what the printed QR code will point to. If the address chan
 A "Support Flake Lab" link then appears in the **More** menu and a short tip line in the Print dialog. Leave it
 empty to hide both. Kid mode never shows a tip link, and printed sheets never carry one.
 
-**Offline.** After one visit over https, the app opens with no internet (`sw.js` keeps a copy). It always
-fetches the newest version when online. If you add a script or stylesheet, add it to `FILES` in `sw.js`
+**Before you push a change to `css/` or `js/`, run `node tools/stamp.js`.** It adds a version tag to every
+script and stylesheet (`?v=...` in `index.html`, `VERSION` in `sw.js`). GitHub Pages lets browsers reuse files
+for 10 minutes, so without the tag a reload right after an update can pair the new page with old scripts
+(buttons that do nothing). `node --test tests/*.test.js` fails if the tag is out of date.
+
+**Offline.** After one visit over https, the app opens with no internet (`sw.js` keeps a copy). Online, it
+checks every file with the server first, so it never serves a stale copy. If you add a script or stylesheet, add it to `FILES` in `sw.js`
 (a test fails if you forget).
 
 ## How to use it

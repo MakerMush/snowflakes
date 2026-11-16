@@ -455,6 +455,23 @@
     toastTimer = setTimeout(function () { t.hidden = true; }, 5000);
   }
 
+  /* ---------- dialogs fit what you can actually see ----------
+     iPad Safari doesn't shrink the page when the keyboard comes up, so a centered dialog ends up under it.
+     Track the visible area and let the CSS size and pin dialogs to it (--vvh, --vvt, html.kb). */
+  (function () {
+    var vv = root.visualViewport, de = root.document && root.document.documentElement;
+    if (!vv || !de) return;
+    function fit() {
+      de.style.setProperty('--vvh', Math.round(vv.height) + 'px');
+      de.style.setProperty('--vvt', Math.round(vv.offsetTop) + 'px');
+      de.classList.toggle('kb', vv.height < root.innerHeight - 100);
+    }
+    vv.addEventListener('resize', fit);
+    vv.addEventListener('scroll', fit);
+    root.addEventListener('orientationchange', function () { setTimeout(fit, 300); });
+    fit();
+  })();
+
   /* ---------- first-run welcome (full mode only; "How it works" in the More menu reopens it) ---------- */
 
   var WELCOME_KEY = SF.config.storageKey + '.welcomed';
@@ -484,7 +501,7 @@
   /* ---------- offline: keep a copy of the app for flaky school Wi-Fi (see sw.js) ---------- */
 
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-    navigator.serviceWorker.register('sw.js').catch(function () { /* offline copy is a bonus, never an error */ });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(function () { /* offline copy is a bonus, never an error */ });
   }
 
   /* ---------- phone tabs ---------- */
