@@ -23,6 +23,14 @@
   var MAX_HISTORY = 100;
   var MAX_POINTS = 40000;                 // traced vertices in a whole document (keeps loaded files from freezing the page)
   var ARMS = [4, 6];
+  var KID_MIN_SIZE = 12;                  // kid mode: no shape smaller than this (about 11 mm), so kid scissors can cut it
+
+  /** Smallest width/height a shape may have. Bridges are exempt: they are thin bars on purpose. */
+  function minSizeOf(opts) { return opts && opts.kids ? KID_MIN_SIZE : 1; }
+  function clampSize(o, min) {
+    var m = o.bridge ? 1 : min;
+    o.sx = G.clamp(o.sx, m, 200); o.sy = G.clamp(o.sy, m, 200);
+  }
 
   function defaultDoc() {
     return { v: 1, arms: 6, mode: 'cut', hub: true, hubR: 7, nextId: 1, objects: [] };
@@ -44,6 +52,19 @@
         x: it[1], y: it[2], sx: it[3], sy: it[4], rot: it[5], flip: false, role: 'cut'
       });
       if (!s) throw new Error('starter shape missing: ' + it[0]);
+    });
+    return d;
+  }
+
+  /**
+   * Kid mode's first design: 4 arms, chunky shapes that each touch an edge (a fold or the outer rim),
+   * so kid scissors can cut every one without a grown-up poking a hole through the middle.
+   */
+  function kidStarterDoc() {
+    var d = defaultDoc(), k = Math.tan(Math.PI / 8);        // fold edges of the 4-arm wedge: x = +-k * |y|
+    d.arms = 4;
+    [['circle', 0, -98, 24, 24, 0], ['heart', -k * 60, -60, 16, 16, 337.5], ['circle', k * 35, -35, 14, 14, 0]].forEach(function (it) {
+      d.objects.push({ id: 'o' + d.nextId++, type: 'shape', shapeId: it[0], x: it[1], y: it[2], sx: it[3], sy: it[4], rot: it[5], flip: false, role: 'cut' });
     });
     return d;
   }
@@ -102,9 +123,10 @@
     return { x0: x0, y0: y0, x1: x1, y1: y1, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, w: x1 - x0, h: y1 - y0 };
   }
 
-  /** Make any input safe to use: unknown shapes, bad numbers and bad roles are dropped or clamped. */
-  function sanitize(input) {
-    var d = defaultDoc();
+  /** Make any input safe to use: unknown shapes, bad numbers and bad roles are dropped or clamped.
+   *  opts.kids also enforces the kid-mode minimum shape size. */
+  function sanitize(input, opts) {
+    var d = defaultDoc(), minSize = minSizeOf(opts);
     if (!input || typeof input !== 'object') return d;
     d.arms = ARMS.indexOf(input.arms) >= 0 ? input.arms : 6;
     d.mode = input.mode === 'build' ? 'build' : 'cut';
@@ -135,6 +157,7 @@
       else out.shapeId = o.shapeId;
       if (typeof o.label === 'string' && cleanText(o.label, 40, '')) out.label = cleanText(o.label, 40, '');
       if (o.bridge) out.bridge = true;
+      clampSize(out, minSize);
       if (typeof o.group === 'string' && /^g\d+$/.test(o.group)) out.group = o.group;
       d.objects.push(out);
     });
@@ -177,8 +200,10 @@
     return d;
   }
 
-  function createStore(initial) {
-    var doc = sanitize(initial || defaultDoc());
+  /** opts.kids: kid mode (shapes never shrink below KID_MIN_SIZE). */
+  function createStore(initial, opts) {
+    var storeOpts = { kids: !!(opts && opts.kids) }, MIN = minSizeOf(storeOpts);
+    var doc = sanitize(initial || defaultDoc(), storeOpts);
     var selection = [];                  // ids, in the order they were picked
     var past = [], future = [];
     var lastKey = null, lastT = 0;
@@ -231,6 +256,7 @@
 
     var store = {
       get doc() { return doc; },
+      minSize: MIN,
       /** The selected id when exactly one object is selected, else null. */
       get selectedId() { return selection.length === 1 ? selection[0] : null; },
       get selectedIds() { return selection.slice(); },
@@ -260,7 +286,7 @@
         var o = find(id);
         if (!o) return;
         for (var k in p) if (Object.prototype.hasOwnProperty.call(p, k)) o[k] = p[k];
-        o.sx = G.clamp(o.sx, 1, 200); o.sy = G.clamp(o.sy, 1, 200);
+        clampSize(o, MIN);
         clampPos(o);
         emit('change');
       },
@@ -272,8 +298,11 @@
       transform: function (base, t) {
         var s = t.s === undefined ? 1 : t.s, th = (t.theta || 0) * G.DEG, c = Math.cos(th), sn = Math.sin(th);
         var lo = 0, hi = Infinity;
-        base.forEach(function (b) { lo = Math.max(lo, 1 / b.sx, 1 / b.sy); hi = Math.min(hi, 200 / b.sx, 200 / b.sy); });
-        s = G.clamp(s, lo, hi);                       // sizes stay between 1 and 200 for every member
+        base.forEach(function (b) {
+          var o = find(b.id), m = o && !o.bridge ? MIN : 1;
+          lo = Math.max(lo, m / b.sx, m / b.sy); hi = Math.min(hi, 200 / b.sx, 200 / b.sy);
+        });
+        s = G.clamp(s, Math.min(lo, hi), hi);         // sizes stay between the minimum (1, or more in kid mode) and 200 for every member
         base.forEach(function (b) {
           var o = find(b.id);
           if (!o) return;
@@ -304,6 +333,7 @@
           rot: 0, flip: false,
           role: opts.role ? (opts.role === 'keep' ? 'keep' : 'cut') : (doc.mode === 'build' ? 'keep' : 'cut')
         };
+        clampSize(o, MIN);
         doc.objects.push(o);
         selection = [o.id];
         emit('change');
@@ -325,6 +355,7 @@
           name: probe.objects[0].name, x: 0, y: -58, sx: size * f.sx, sy: size * f.sy, rot: 0, flip: false,
           role: opts.role ? (opts.role === 'keep' ? 'keep' : 'cut') : (doc.mode === 'build' ? 'keep' : 'cut')
         };
+        clampSize(o, MIN);
         doc.objects.push(o);
         selection = [o.id];
         emit('change');
@@ -336,7 +367,7 @@
         if (!drafts || !drafts.length || room <= 0) return added;
         begin();
         drafts.slice(0, room).forEach(function (d) {
-          var o = sanitize({ arms: doc.arms, objects: [Object.assign({}, d, { id: 'o1', group: undefined })] }).objects[0];
+          var o = sanitize({ arms: doc.arms, objects: [Object.assign({}, d, { id: 'o1', group: undefined })] }, storeOpts).objects[0];
           if (!o) return;
           o.id = newId();
           doc.objects.push(o);
@@ -520,7 +551,7 @@
         begin(); doc.objects = []; selection = []; emit('change');
       },
       replaceAll: function (next) {
-        begin(); doc = sanitize(next); selection = []; emit('change');
+        begin(); doc = sanitize(next, storeOpts); selection = []; emit('change');
       },
       undo: function () {
         if (!past.length) return false;
@@ -544,8 +575,8 @@
   }
 
   return {
-    createStore: createStore, defaultDoc: defaultDoc, starterDoc: starterDoc,
+    createStore: createStore, defaultDoc: defaultDoc, starterDoc: starterDoc, kidStarterDoc: kidStarterDoc,
     randomDoc: randomDoc, sanitize: sanitize, placement: placement, boundsOf: boundsOf,
-    MAX_OBJECTS: MAX_OBJECTS, ARMS: ARMS
+    MAX_OBJECTS: MAX_OBJECTS, ARMS: ARMS, KID_MIN_SIZE: KID_MIN_SIZE
   };
 });

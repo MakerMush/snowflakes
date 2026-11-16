@@ -287,11 +287,13 @@
     if (meta && (k === 'a' || k === 'A')) { e.preventDefault(); store.selectAll(); return; }
     if (meta && (k === 'g' || k === 'G')) {
       e.preventDefault();
+      if (root.SF.config && root.SF.config.kids) return;
       if (e.shiftKey) store.ungroupSelection(); else store.groupSelection();
       return;
     }
     var ids = store.selectedIds;
     if (!ids.length) return;
+    var kids = !!(root.SF.config && root.SF.config.kids);     // kid mode has no Keep, grouping or stacking order
     if (meta && (k === 'd' || k === 'D')) { e.preventDefault(); store.duplicate(); return; }
     if (meta || e.altKey) return;
     var step = e.shiftKey ? 2 : 0.5;
@@ -305,6 +307,7 @@
       if (ids.length === 1) { var o = store.get(ids[0]); store.patch(o.id, { x: o.x + dx, y: o.y + dy }); }
       else store.transform(store.snapshotOf(), { dx: dx, dy: dy, cx: 0, cy: 0 });
     }
+    else if (kids && (k === 'k' || k === 'K' || k === '[' || k === ']')) return;
     else if (k === 'k' || k === 'K') {
       var allCut = ids.every(function (id) { return store.get(id).role === 'cut'; });
       store.setRole(undefined, allCut ? 'keep' : 'cut');

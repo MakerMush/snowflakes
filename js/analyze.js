@@ -34,6 +34,10 @@
       note: 'Use a craft knife on a cutting mat, and cut away from your fingers.' }
   ];
 
+  /** Kid mode (first graders): the same tools, but kid scissors need much chunkier details and bridges. */
+  var KID_TOOLS = TOOLS.map(function (t) { return t.id === 'kid' ? Object.assign({}, t, { width: 6.0, bridge: 6.0 }) : t; });
+  function toolsFor(kids) { return kids ? KID_TOOLS : TOOLS; }
+
   var MIN_ISLAND_AREA = 1.0;            // units squared: ignore specks smaller than this
   var MIN_THIN_AREA = 5.0;              // units squared: ignore corner residue (sharp tips are easy to cut; long slivers are not)
 
@@ -146,6 +150,7 @@
     var t0 = now();
     opts = opts || {};
     var tool = Math.max(0, Math.min(2, opts.tool == null ? 0 : opts.tool | 0));
+    var kids = !!opts.kids, T = toolsFor(kids);
     var n = doc.arms, g = grid(n), N = g.N, total = N * N;
     var comp = SM.compile(doc);
 
@@ -216,7 +221,7 @@
     var d1Paper = null, d1Cut = null, thinCache = [null, null, null];
     function thin(t) {
       if (thinCache[t]) return thinCache[t];
-      var rPx = (TOOLS[t].width / 2) / STEP;
+      var rPx = (T[t].width / 2) / STEP;
       if (!d1Paper) { d1Paper = edtFrom(notPaper, N); d1Cut = edtFrom(paper, N); }
       var pRes = thinResidue(paper, d1Paper, rPx, N);
       var cRes = thinResidue(notPaper, d1Cut, rPx, N);
@@ -252,7 +257,7 @@
     };
 
     return {
-      N: N, step: STEP, grid: g, doc: doc, stats: stats, report: score(stats),
+      N: N, step: STEP, grid: g, doc: doc, stats: stats, report: score(stats, kids), kids: kids,
       paper: paper, cutMask: cutMask,
       paperLabels: pl, mainLabel: mainLabel, islandMask: islandMask,
       thinPaperMask: sel.paperMask, thinCutMask: sel.cutMask,
@@ -264,7 +269,7 @@
 
   var LABELS = ['Easy peasy', 'Easy peasy', 'Chill', 'Chill', 'Takes patience', 'Takes patience', 'A real challenge', 'A real challenge', 'Expert mode', 'Expert mode'];
 
-  function score(st) {
+  function score(st, kids) {
     var parts = {
       length: 3.0 * (1 - Math.exp(-st.cutLenUnits / 220)),
       interior: 0.3 * Math.min(st.interiorHoles, 8),
@@ -293,7 +298,7 @@
       .map(function (k) { return texts[k]; });
 
     return {
-      score: value, raw: raw, label: LABELS[value - 1], toolIndex: toolIdx, tool: TOOLS[toolIdx],
+      score: value, raw: raw, label: LABELS[value - 1], toolIndex: toolIdx, tool: toolsFor(kids)[toolIdx],
       tooFine: tooFine, drivers: drivers, parts: parts
     };
   }
@@ -359,7 +364,7 @@
     var parent = {};
     function find(x) { while (parent[x] !== undefined && parent[x] !== x) x = parent[x]; return x; }
     ls.forEach(function (x) { parent[x] = x; });
-    var groups = Object.keys(parent).length, bars = [], width = TOOLS[toolIdx].bridge, ext = 1.0;
+    var groups = Object.keys(parent).length, bars = [], width = toolsFor(a.kids)[toolIdx].bridge, ext = 1.0;
     for (var e = 0; e < edges.length && groups > 1; e++) {            // cheapest links that join everything (a spanning tree)
       var ed = edges[e], ra = find(ed.a), rb = find(ed.b);
       if (ra === rb) continue;
@@ -379,11 +384,13 @@
   /**
    * Repeatedly add bridges until nothing is loose (or it cannot make progress).
    * Returns { bars, remaining } where remaining is how many islands are still loose.
+   * opts.kids uses the kid-mode thresholds (wider bridges).
    */
-  function autoBridge(doc, toolIdx) {
+  function autoBridge(doc, toolIdx, opts) {
+    var kids = !!(opts && opts.kids);
     var work = JSON.parse(JSON.stringify(doc)), bars = [], remaining = 0;
     for (var pass = 0; pass < 4; pass++) {
-      var a = analyze(work, { tool: toolIdx });
+      var a = analyze(work, { tool: toolIdx, kids: kids });
       remaining = a.stats.islands;
       if (!remaining) break;
       var plan = planBridges(a, toolIdx);
@@ -395,12 +402,12 @@
         work.objects.push(o);
       });
     }
-    if (bars.length) remaining = analyze(work, { tool: toolIdx }).stats.islands;
+    if (bars.length) remaining = analyze(work, { tool: toolIdx, kids: kids }).stats.islands;
     return { bars: bars, remaining: remaining };
   }
 
   return {
-    STEP: STEP, MM_PER_UNIT: MM_PER_UNIT, TOOLS: TOOLS, grid: grid,
+    STEP: STEP, MM_PER_UNIT: MM_PER_UNIT, TOOLS: TOOLS, KID_TOOLS: KID_TOOLS, toolsFor: toolsFor, grid: grid,
     analyze: analyze, score: score, overlayRGBA: overlayRGBA,
     planBridges: planBridges, autoBridge: autoBridge,
     labelComponents: labelComponents, edtFrom: edtFrom

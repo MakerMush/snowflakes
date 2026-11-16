@@ -23,7 +23,19 @@
       $('printSummary').textContent = plural(pages.length, 'page', 'pages') + ' · ' + res.info.arms + ' arms · difficulty ' + res.info.score + '/10';
     }
 
+    /** Kid mode: big text, few words. Holes that do not reach an edge need a grown-up to poke through. */
+    function kidWarnings() {
+      var st = analysis.stats, items = [];
+      if (st.interiorHoles) items.push('<b>Ask a grown-up!</b> A hole is in the middle. A grown-up pokes it through.');
+      if (st.islands) items.push('Some pieces will fall out.');
+      if (st.thinPaper || st.thinCut) items.push('Some parts are too small to cut.');
+      var box = $('printWarn');
+      box.hidden = !items.length;
+      box.innerHTML = items.map(function (t) { return '<p>' + t + '</p>'; }).join('');
+    }
+
     function warnings() {
+      if (ctx.kids) { kidWarnings(); return; }
       var st = analysis.stats, tn = AN.TOOLS[ctx.getTool()].short.toLowerCase(), items = [];
       if (st.islands) {
         items.push(st.fallsApart ? 'Nothing holds this design together: it would fall into ' + plural(st.islandPieces, 'piece', 'pieces') + '.'
@@ -40,7 +52,13 @@
 
     function open() {
       if (!store.doc.objects.length) { ctx.toast('Add a shape first, then print.'); return; }
-      analysis = AN.analyze(store.doc, { tool: ctx.getTool() });
+      if (ctx.kids) {                                    // kid mode adds bridges for you, so nothing falls out
+        var res = AN.autoBridge(store.doc, ctx.getTool(), { kids: true });
+        var added = res.bars.length ? store.addObjects(res.bars).length : 0;
+        $('printKidNote').hidden = !added;               // a toast would hide behind the dialog, so say it in here
+        $('optName').checked = true;
+      }
+      analysis = AN.analyze(store.doc, { tool: ctx.getTool(), kids: !!ctx.kids });
       warnings();
       refresh();
       if (dlg.showModal) { if (!dlg.open) dlg.showModal(); } else dlg.setAttribute('open', '');

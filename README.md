@@ -72,6 +72,16 @@ That address is also what the printed QR code will point to. If the address chan
   ordinary designs made only from library shapes, so you can keep editing.
 - The design autosaves in your browser. **Reset** clears it (and offers Undo). **Surprise me** makes a random one.
 
+## Kid mode
+
+Add `?kids` to the address (for example `index.html?kids`) for a first-grade version on tablets.
+It locks the design to 4 arms, Cut mode and kid scissors, and hides the advanced controls (Build mode,
+6 arms, Geometry mode, Photo/Presets, Reset, align and hub bars, grouping and layer order, Cut/Keep, the
+layers list). Shape tiles and buttons are bigger, shapes cannot shrink below about 11 mm, and kid scissors
+flag anything under about 6 mm. Print adds bridges first and warns, in big text, when a hole sits in the
+middle and needs a grown-up to poke it through. Kid mode saves its design separately (`flakelab.v1.kids`),
+so it never overwrites a design made in the full app. Leave off `?kids` (or use `?kids=0`) for the full app.
+
 ## Geometry mode (phase 5)
 
 The **Geometry mode** button in the top bar opens a dialog that works on whatever is on your wedge right now.

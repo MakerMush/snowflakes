@@ -3,7 +3,9 @@
   'use strict';
   var SF = root.SF, G = SF.geometry, S = SF.shapes, ST = SF.state, SM = SF.sampler, AN = SF.analyze, P = SF.presets;
   var $ = function (id) { return document.getElementById(id); };
-  var KEY = SF.config.storageKey, TOOL_KEY = SF.config.storageKey + '.tool';
+  var KIDS = !!SF.config.kids;                          // kid mode: 4 arms, Cut mode, kid scissors, simplified UI
+  var KEY = SF.config.storageKey + (KIDS ? '.kids' : ''), TOOL_KEY = SF.config.storageKey + '.tool';
+  if (KIDS) document.body.classList.add('kids');
 
   /* ---------- load / save ---------- */
 
@@ -23,9 +25,17 @@
     return 0;
   }
 
-  var store = ST.createStore(loadSaved() || ST.starterDoc());
+  /** Kid mode keeps the saved shapes but forces 4 arms and Cut mode (a saved Build design would mean the opposite). */
+  function kidDoc(saved) {
+    var d = saved && typeof saved === 'object' && saved.mode !== 'build' ? saved : ST.kidStarterDoc();
+    d.arms = 4; d.mode = 'cut';
+    if (Array.isArray(d.objects)) d.objects.forEach(function (o) { if (o && !o.bridge) o.role = 'cut'; });
+    return d;
+  }
+
+  var store = KIDS ? ST.createStore(kidDoc(loadSaved()), { kids: true }) : ST.createStore(loadSaved() || ST.starterDoc());
   var editor = new SF.Editor($('editor'), store);
-  var tool = loadTool();                              // 0 kid scissors, 1 sharp scissors, 2 craft knife
+  var tool = KIDS ? 0 : loadTool();                   // 0 kid scissors, 1 sharp scissors, 2 craft knife
   var edgeMode = 'fold';                              // 'fold' (centered on the fold) or 'inside'
   var analysis = null, overlayURL = null, stale = true, anTimer = 0;
   SF.store = store;                                   // handy in the browser console
@@ -97,14 +107,14 @@
   /* ---------- top bar ---------- */
 
   document.querySelectorAll('[data-arms]').forEach(function (b) {
-    b.addEventListener('click', function () { store.setArms(+b.getAttribute('data-arms')); });
+    b.addEventListener('click', function () { if (!KIDS) store.setArms(+b.getAttribute('data-arms')); });
   });
   $('btnUndo').addEventListener('click', function () { store.undo(); });
   $('btnRedo').addEventListener('click', function () { store.redo(); });
   $('btnSurprise').addEventListener('click', function () {
-    var d = ST.randomDoc(store.doc.arms, null, store.doc.mode);
+    var d = KIDS ? ST.randomDoc(4, null, 'cut') : ST.randomDoc(store.doc.arms, null, store.doc.mode);
     if (d.mode === 'build') {                      // loose pieces of paper would fall out, so link them up
-      AN.autoBridge(d, tool).bars.forEach(function (bar) {
+      AN.autoBridge(d, tool, { kids: KIDS }).bars.forEach(function (bar) {
         d.objects.push(Object.assign({ id: 'o' + (d.nextId++), type: 'shape' }, bar));
       });
     }
@@ -113,7 +123,7 @@
   document.querySelectorAll('[data-setmode]').forEach(function (b) {
     b.addEventListener('click', function () {
       var m = b.getAttribute('data-setmode'), had = store.doc.objects.length;
-      if (!store.setMode(m)) return;
+      if (KIDS || !store.setMode(m)) return;
       var msg = m === 'build' ? 'Build mode: nothing is kept yet. Add shapes to build the flake.'
         : 'Cut mode: a full sheet of paper. Add shapes to cut them out.';
       if (had) toast(msg + ' Your design was cleared.', 'Undo', function () { store.undo(); });
@@ -137,7 +147,7 @@
   $('btnBack').addEventListener('click', act(function () { store.reorder(undefined, 'down'); }));
   $('btnDel').addEventListener('click', act(function () { store.remove(); }));
   $('roleCut').addEventListener('click', act(function () { store.setRole(undefined, 'cut'); }));
-  $('roleKeep').addEventListener('click', act(function () { store.setRole(undefined, 'keep'); }));
+  $('roleKeep').addEventListener('click', act(function () { if (!KIDS) store.setRole(undefined, 'keep'); }));
   $('btnGroup').addEventListener('click', function () {
     if (store.groupSelection()) toast('Grouped. They now move, resize and rotate together.', 'Undo', function () { store.undo(); });
   });
@@ -204,7 +214,7 @@
     });
     document.body.setAttribute('data-mode', doc.mode);
     $('editor').setAttribute('data-mode', doc.mode);
-    $('shapesHint').textContent = doc.mode === 'build'
+    $('shapesHint').textContent = KIDS ? 'Tap a shape. Then drag it on the wedge.' : doc.mode === 'build'
       ? 'Build mode: nothing is kept yet. Click a shape to add paper, then drag, resize and rotate it. Connect everything to the center.'
       : 'Click a shape to drop it on the wedge, then drag, resize and rotate it.';
     var info = G.groupInfo(doc.arms);
@@ -272,7 +282,7 @@
 
   function runAnalysis() {
     anTimer = 0;
-    analysis = AN.analyze(store.doc, { tool: tool });
+    analysis = AN.analyze(store.doc, { tool: tool, kids: KIDS });
     overlayURL = overlayDataURL(analysis);
     stale = false;
     $('cardCx').classList.remove('stale');
@@ -299,7 +309,7 @@
   function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
 
   function renderChecks() {
-    var st = analysis.stats, items = [], tn = AN.TOOLS[tool].short.toLowerCase();
+    var st = analysis.stats, items = [], tn = AN.toolsFor(KIDS)[tool].short.toLowerCase();
     if (st.islands) {
       items.push({ sw: 'sw-island', text: st.fallsApart
         ? 'Nothing holds this design together: it would fall into ' + plural(st.islandPieces, 'piece', 'pieces') + '.'
@@ -317,12 +327,12 @@
   }
 
   /* tool picker */
-  $('toolSeg').innerHTML = AN.TOOLS.map(function (t, i) {
+  $('toolSeg').innerHTML = AN.toolsFor(KIDS).map(function (t, i) {
     return '<button type="button" role="radio" aria-checked="' + (i === tool) + '" data-tool="' + i + '" title="' + t.name + ': handles details down to about ' + t.width + ' mm">' + t.short + '</button>';
   }).join('');
   $('toolSeg').addEventListener('click', function (e) {
     var b = e.target.closest('[data-tool]');
-    if (!b) return;
+    if (!b || KIDS) return;
     tool = +b.getAttribute('data-tool');
     try { root.localStorage.setItem(TOOL_KEY, String(tool)); } catch (err) { /* storage blocked */ }
     $('toolSeg').querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-checked', String(x === b)); });
@@ -330,7 +340,7 @@
   });
 
   $('btnBridges').addEventListener('click', function () {
-    var res = AN.autoBridge(store.doc, tool);
+    var res = AN.autoBridge(store.doc, tool, { kids: KIDS });
     if (!res.bars.length) { toast('Could not find a spot for a bridge. Try moving a shape.'); return; }
     store.addObjects(res.bars);
     toast('Added ' + plural(res.bars.length, 'bridge', 'bridges') + (res.remaining ? ', but ' + plural(res.remaining, 'island is', 'islands are') + ' still loose.' : '.'),
@@ -373,7 +383,7 @@
     toastTimer = setTimeout(function () { t.hidden = true; }, 5000);
   }
 
-  SF.printUI.init({ store: store, toast: toast, getTool: function () { return tool; } });
+  SF.printUI.init({ store: store, toast: toast, kids: KIDS, getTool: function () { return tool; } });
   SF.geoLab.init({ store: store, toast: toast, getTool: function () { return tool; } });
   SF.photoPanel.init({ store: store, toast: toast, onAdded: function () { if (isNarrow()) go('design'); } });
 

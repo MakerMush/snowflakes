@@ -5,7 +5,15 @@
   root.SF.config = {
     siteUrl: 'https://makermush.github.io/snowflakes/',
     appName: 'Flake Lab',
-    storageKey: 'flakelab.v1'
+    storageKey: 'flakelab.v1',
+    kids: kidsFromUrl()                  // kid mode (?kids in the URL): a simplified, first-grade-friendly app
   };
+  /** True for ?kids, ?kids=1 and the like; ?kids=0 or ?kids=false leave it off. */
+  function kidsFromUrl() {
+    try {
+      var m = /[?&]kids(?:=([^&#]*))?(?:[&#]|$)/.exec(root.location ? root.location.search : '');
+      return !!m && !/^(0|false|no|off)$/i.test(m[1] || '');
+    } catch (e) { return false; }
+  }
   if (typeof module === 'object' && module.exports) module.exports = root.SF.config;     // lets node tests read it
 })(typeof self !== 'undefined' ? self : this);
