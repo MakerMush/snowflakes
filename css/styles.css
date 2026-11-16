@@ -522,6 +522,16 @@ html.kb .dlg[open] {
 }
 html.kb .dlg-head, html.kb .dlg-foot { padding: 6px 12px; }
 html.kb .dlg-body { padding: 8px 12px; }
+/* typing your name with the iPad keyboard up leaves a short strip of screen:
+   show just the name and the buttons; everything else is back when the keyboard goes away */
+html.kb #printDlg[open] { max-height: none; }
+html.kb #printDlg .dlg-head,
+html.kb #printDlg .dlg-preview,
+html.kb #printDlg .dlg-side > :not(.name-field),
+html.kb #printDlg .name-field span { display: none; }
+html.kb #printDlg .dlg-body { overflow: visible; }
+html.kb #printDlg .dlg-side { flex: 1; width: auto; }
+html.kb #printDlg .name-field { margin: 0; }
 
 @media (max-width: 760px) {
   .dlg-body { flex-direction: column; }

@@ -113,6 +113,7 @@
     $('printName').addEventListener('keydown', function (e) {
       if (e.key !== 'Enter') return;
       e.preventDefault(); clearTimeout(nameTimer); refresh();
+      this.blur();                                   // the keyboard's ✓ puts the keyboard away and brings back the full sheet
       if (ctx.kids) download();
     });
 
