@@ -35,6 +35,7 @@
 
   var store = KIDS ? ST.createStore(kidDoc(loadSaved()), { kids: true }) : ST.createStore(loadSaved() || ST.starterDoc());
   var editor = new SF.Editor($('editor'), store);
+  SF.editor = editor;
   var tool = KIDS ? 0 : loadTool();                   // 0 kid scissors, 1 sharp scissors, 2 craft knife
   var edgeMode = 'fold';                              // 'fold' (centered on the fold) or 'inside'
   var analysis = null, overlayURL = null, stale = true, anTimer = 0;
@@ -131,6 +132,20 @@
       else toast(msg);
     });
   });
+  /* ---------- zoom ---------- */
+
+  $('zoomIn').addEventListener('click', function () { editor.zoomIn(); });
+  $('zoomOut').addEventListener('click', function () { editor.zoomOut(); });
+  $('zoomReset').addEventListener('click', function () { editor.resetZoom(); });
+  editor.onZoom(function (z) {
+    var zoomed = z > 1.001;
+    $('zoomPct').textContent = Math.round(z * 100) + '%';
+    $('zoomReset').disabled = !zoomed;
+    $('zoomReset').classList.toggle('zoomed', zoomed);
+    $('zoomOut').disabled = !zoomed;
+    $('zoomIn').disabled = z >= 5.999;
+  });
+
   /* ---------- popovers (More menu, Align) ---------- */
 
   var popClosers = [];
@@ -158,6 +173,22 @@
     if (!store.doc.objects.length) { toast('The wedge is already empty.'); return; }
     store.clear();
     toast('Template cleared.', 'Undo', function () { store.undo(); });
+  });
+
+  /* kid mode: Start over, with one simple question first (Undo still brings it back) */
+  function closeClear() { var d = $('clearDlg'); if (d.close) d.close(); else d.removeAttribute('open'); }
+  $('btnKidClear').addEventListener('click', function () {
+    if (!store.doc.objects.length) { toast('Your wedge is already empty.'); return; }
+    var d = $('clearDlg');
+    if (d.showModal) d.showModal(); else d.setAttribute('open', '');
+    $('clearNo').focus();                                    // the safe answer is the default
+  });
+  $('clearNo').addEventListener('click', closeClear);
+  $('clearYes').addEventListener('click', function () {
+    closeClear();
+    store.clear();
+    editor.resetZoom();
+    toast('All clear! Tap a shape to start again.', 'Undo', function () { store.undo(); });
   });
 
   /* ---------- selection bar and align tools ---------- */

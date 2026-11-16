@@ -30,6 +30,9 @@ fetches the newest version when online. If you add a script or stylesheet, add i
 
 ## How to use it
 
+- **Zoom and pan** the wedge: the **- / + / Reset zoom** buttons at the bottom right of the canvas, pinch or
+  Ctrl/Cmd + scroll to zoom, two fingers, scroll, Space + drag or the middle mouse button to move around, and
+  the **+**, **-** and **0** keys. Zoom only changes the view, never the design.
 - First visit shows a short **welcome** (three steps). **More**, then **How it works** shows it again.
 - The **arms and mode** button at the top left (for example "6 arms · Cut mode") opens the setup.
   Pick **4 arms** (45 degree wedge, 8 layers, easiest to cut) or **6 arms** (30 degree wedge, 12 layers).
@@ -93,7 +96,8 @@ write on.
 Add `?kids` to the address (for example `index.html?kids`) for a first-grade version on tablets.
 It locks the design to 4 arms, Cut mode and kid scissors, and hides the advanced controls (Build mode,
 6 arms, Geometry mode, Photo/Presets, Reset, align and hub bars, grouping and layer order, Cut/Keep, the
-layers list), and swaps the complexity and cut-check cards for one plain status line with a **Fix it** button. Shape tiles and buttons are bigger, shapes cannot shrink below about 11 mm, and kid scissors
+layers list), adds a **Start over** button (one simple "Start over?" question first; Undo still brings it back),
+starts with a traditional 4-arm snowflake whose shapes all reach an edge (no grown-up needed), and swaps the complexity and cut-check cards for one plain status line with a **Fix it** button. Shape tiles and buttons are bigger, shapes cannot shrink below about 11 mm, and kid scissors
 flag anything under about 6 mm. The last step is **Save my PDF** (there are no print options): it adds
 bridges first, warns in big text when a hole sits in the middle and needs a grown-up to poke it through,
 and asks the student to type their name. Saving stays off until a name is entered; the name is printed

@@ -57,15 +57,23 @@
   }
 
   /**
-   * Kid mode's first design: 4 arms, chunky shapes that each touch an edge (a fold or the outer rim),
-   * so kid scissors can cut every one without a grown-up poking a hole through the middle.
+   * Kid mode's first design: a traditional 4-arm snowflake (petal rays, round holes, petals on the rim).
+   * Every shape sits on a fold or the outer rim, so kid scissors can reach it from an edge (no grown-up
+   * needed to poke through), and there are no sharp points thinner than kid scissors can cut.
    */
   function kidStarterDoc() {
-    var d = defaultDoc(), k = Math.tan(Math.PI / 8);        // fold edges of the 4-arm wedge: x = +-k * |y|
-    d.arms = 4;
-    [['circle', 0, -98, 24, 24, 0], ['heart', -k * 60, -60, 16, 16, 337.5], ['circle', k * 35, -35, 14, 14, 0]].forEach(function (it) {
-      d.objects.push({ id: 'o' + d.nextId++, type: 'shape', shapeId: it[0], x: it[1], y: it[2], sx: it[3], sy: it[4], rot: it[5], flip: false, role: 'cut' });
+    var d = defaultDoc(), h = Math.PI / 8, sn = Math.sin(h), cs = Math.cos(h);   // fold edges of the 4-arm wedge
+    function onFold(side, t) { return [side * t * sn, -t * cs]; }
+    [
+      ['petal', [0, -95], 22, 34, 0],                         // rim notch
+      ['petal', onFold(-1, 64), 16, 26, 337.5],               // rays along both folds
+      ['petal', onFold(1, 64), 16, 26, 22.5],
+      ['circle', onFold(-1, 38), 14, 14, 0],                  // round holes nearer the middle
+      ['circle', onFold(1, 38), 14, 14, 0]
+    ].forEach(function (it) {
+      d.objects.push({ id: 'o' + d.nextId++, type: 'shape', shapeId: it[0], x: it[1][0], y: it[1][1], sx: it[2], sy: it[3], rot: it[4], flip: false, role: 'cut' });
     });
+    d.arms = 4;
     return d;
   }
 

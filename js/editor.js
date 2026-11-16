@@ -3,6 +3,9 @@
  * handles to resize, the round handle to rotate. Shift-click adds shapes to the selection, dragging
  * on empty paper draws a selection box, and a selection (or a group) moves, scales and rotates as one.
  * Everything goes through the store so undo works.
+ *
+ * Zoom and pan only change the view (the SVG viewBox), never the design: pinch or Ctrl/Cmd + scroll zooms,
+ * two fingers, scroll, the middle mouse button or Space + drag pans, and + / - / 0 zoom in, out and reset.
  */
 (function (root) {
   'use strict';
@@ -10,6 +13,7 @@
 
   function f(v) { return Math.round(v * 1000) / 1000; }
   function deg(r) { return r * 180 / Math.PI; }
+  var MAX_ZOOM = 6;
 
   function Editor(svg, store) {
     this.svg = svg;
@@ -17,7 +21,14 @@
     this.drag = null;
     this.builtArms = null;
     this.upp = 0.2;                      // wedge units per screen pixel, kept fresh by measure()
+    this.pointers = {};                  // pointers currently down, for two-finger pinch and pan
+    this.pinch = null;
+    this.space = false;                  // Space held: drag pans
+    this.zoomListeners = [];
     var self = this;
+    svg.addEventListener('wheel', function (e) { self.wheel(e); }, { passive: false });
+    document.addEventListener('keyup', function (e) { if (e.key === ' ') self.setSpace(false); });
+    root.addEventListener('blur', function () { self.setSpace(false); });
     svg.addEventListener('pointerdown', function (e) { self.down(e); });
     svg.addEventListener('pointermove', function (e) { self.move(e); });
     svg.addEventListener('pointerup', function (e) { self.up(e); });
@@ -43,6 +54,72 @@
     return [q.x, q.y];
   };
 
+  /* ---------- zoom and pan (the view only; the design is untouched) ---------- */
+
+  /** How a view box lands on screen (the SVG keeps its aspect ratio and centres it). */
+  Editor.prototype.mapping = function (v) {
+    var r = this.svg.getBoundingClientRect(), k = Math.min(r.width / v.w, r.height / v.h) || 1;
+    return { k: k, ox: r.left + (r.width - v.w * k) / 2, oy: r.top + (r.height - v.h * k) / 2 };
+  };
+  Editor.prototype.worldAt = function (v, cx, cy) {
+    var m = this.mapping(v);
+    return [v.x + (cx - m.ox) / m.k, v.y + (cy - m.oy) / m.k];
+  };
+  Editor.prototype.zoomLevel = function () { return this.home && this.view ? this.home.w / this.view.w : 1; };
+  Editor.prototype.onZoom = function (fn) { this.zoomListeners.push(fn); fn(this.zoomLevel()); };
+
+  /** Show view box v, kept between "whole wedge" (zoom 1) and MAX_ZOOM and never panned off the wedge. */
+  Editor.prototype.setView = function (v) {
+    var H = this.home, z = G.clamp(H.w / v.w, 1, MAX_ZOOM), w = H.w / z, h = H.h / z;
+    var x = G.clamp(v.x + (v.w - w) / 2, H.x, H.x + H.w - w), y = G.clamp(v.y + (v.h - h) / 2, H.y, H.y + H.h - h);
+    this.view = { x: x, y: y, w: w, h: h };
+    this.svg.setAttribute('viewBox', [x, y, w, h].map(f).join(' '));
+    this.measure();
+    this.renderSelection();
+    var zl = this.zoomLevel();
+    this.zoomListeners.forEach(function (fn) { fn(zl); });
+  };
+  /** The view box zoomed by `factor` around the screen point (cx, cy) of view v0, then moved by (dx, dy) pixels. */
+  Editor.prototype.zoomedView = function (v0, factor, cx, cy, dx, dy) {
+    var H = this.home, z0 = H.w / v0.w, z1 = G.clamp(z0 * factor, 1, MAX_ZOOM), r = z0 / z1;
+    var p = this.worldAt(v0, cx, cy), k1 = this.mapping(v0).k / r;
+    return { x: p[0] - (p[0] - v0.x) * r - (dx || 0) / k1, y: p[1] - (p[1] - v0.y) * r - (dy || 0) / k1, w: v0.w * r, h: v0.h * r };
+  };
+  Editor.prototype.centre = function () {
+    var r = this.svg.getBoundingClientRect();
+    return [r.left + r.width / 2, r.top + r.height / 2];
+  };
+  Editor.prototype.zoomBy = function (factor) {
+    var c = this.centre();
+    this.setView(this.zoomedView(this.view, factor, c[0], c[1]));
+  };
+  Editor.prototype.zoomIn = function () { this.zoomBy(1.5); };
+  Editor.prototype.zoomOut = function () { this.zoomBy(1 / 1.5); };
+  Editor.prototype.resetZoom = function () { this.setView(this.home); };
+
+  Editor.prototype.wheel = function (e) {
+    if (!this.view) return;
+    e.preventDefault();
+    var unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;     // lines or pages to pixels
+    if (e.ctrlKey || e.metaKey) {                                       // pinch on a trackpad, or Ctrl/Cmd + scroll
+      var dz = G.clamp(e.deltaY * unit, -50, 50);                       // one mouse-wheel notch is about 1.35x; trackpad pinches are smooth
+      this.setView(this.zoomedView(this.view, Math.exp(-dz * 0.006), e.clientX, e.clientY));
+    } else if (this.zoomLevel() > 1.001) {                              // scroll pans while zoomed in
+      var k = this.mapping(this.view).k, dx = (e.shiftKey && !e.deltaX ? e.deltaY : e.deltaX) * unit, dy = e.shiftKey ? 0 : e.deltaY * unit;
+      this.setView({ x: this.view.x + dx / k, y: this.view.y + dy / k, w: this.view.w, h: this.view.h });
+    }
+  };
+
+  Editor.prototype.setSpace = function (on) {
+    this.space = on;
+    this.svg.classList.toggle('panning', on);
+  };
+
+  Editor.prototype.pointerList = function () {
+    var ps = this.pointers;
+    return Object.keys(ps).map(function (k) { return ps[k]; });
+  };
+
   /* ---------- static layers (rebuilt only when the fold type changes) ---------- */
 
   Editor.prototype.build = function () {
@@ -50,6 +127,8 @@
     var h = G.halfAngle(n), hw = R * Math.sin(h), m = 24;
     var vb = { x: -hw - m, y: -R - m, w: 2 * hw + 2 * m, h: R + m + 12 };
     this.bounds = { x0: vb.x + 2, x1: vb.x + vb.w - 2, y0: vb.y + 2, y1: vb.y + vb.h - 2 };
+    this.home = vb;                                    // zoom 1: the whole wedge
+    this.view = { x: vb.x, y: vb.y, w: vb.w, h: vb.h };
     svg.setAttribute('viewBox', [vb.x, vb.y, vb.w, vb.h].map(f).join(' '));
 
     var wedgeD = G.wedgePathD(n, R, 0);
@@ -91,6 +170,8 @@
     this.gMarq = svg.querySelector('#ed-marq');
     this.builtArms = n;
     this.measure();
+    var zl = this.zoomLevel();                         // a new fold type starts zoomed out
+    this.zoomListeners.forEach(function (fn) { fn(zl); });
   };
 
   /** Show (or hide, with null) the problem overlay: a PNG covering the whole unfolded disc. */
@@ -166,6 +247,24 @@
   /* ---------- pointer interaction ---------- */
 
   Editor.prototype.down = function (e) {
+    this.pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var pts = this.pointerList();
+    if (e.pointerType !== 'mouse' && pts.length === 2) {          // a second finger: pinch and pan instead
+      if (this.drag && this.drag.kind === 'marquee') this.gMarq.innerHTML = '';
+      this.drag = null;
+      var mid = [(pts[0].x + pts[1].x) / 2, (pts[0].y + pts[1].y) / 2];
+      this.pinch = { v0: this.view, mid0: mid, d0: Math.max(1, Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y)) };
+      try { this.svg.setPointerCapture(e.pointerId); } catch (err) { /* pointer already gone */ }
+      e.preventDefault();
+      return;
+    }
+    if (this.pinch || pts.length > 2) return;
+    if ((e.pointerType === 'mouse' && e.button === 1) || (this.space && e.button === 0)) {   // middle button or Space + drag
+      this.drag = { kind: 'pan', v0: this.view, c0: [e.clientX, e.clientY] };
+      this.svg.setPointerCapture(e.pointerId);
+      e.preventDefault();
+      return;
+    }
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     var t = e.target.closest ? e.target : null;
     var hEl = t && t.closest('[data-handle]');
@@ -219,8 +318,22 @@
   };
 
   Editor.prototype.move = function (e) {
+    if (this.pointers[e.pointerId]) this.pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+    if (this.pinch) {
+      var pts = this.pointerList(), pc = this.pinch;
+      if (pts.length < 2) return;
+      var mid = [(pts[0].x + pts[1].x) / 2, (pts[0].y + pts[1].y) / 2];
+      var s = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) / pc.d0;
+      this.setView(this.zoomedView(pc.v0, s, pc.mid0[0], pc.mid0[1], mid[0] - pc.mid0[0], mid[1] - pc.mid0[1]));
+      return;
+    }
     var d = this.drag;
     if (!d) return;
+    if (d.kind === 'pan') {
+      var k = this.mapping(d.v0).k;
+      this.setView({ x: d.v0.x - (e.clientX - d.c0[0]) / k, y: d.v0.y - (e.clientY - d.c0[1]) / k, w: d.v0.w, h: d.v0.h });
+      return;
+    }
     var p = this.toWorld(e), store = this.store;
     var dx = p[0] - d.p0[0], dy = p[1] - d.p0[1];
     if (!d.began) {
@@ -268,6 +381,11 @@
   };
 
   Editor.prototype.up = function (e) {
+    delete this.pointers[e.pointerId];
+    if (this.pinch) {                                     // lifting a finger ends the pinch; nothing else happens
+      if (!this.pointerList().length) this.pinch = null;
+      return;
+    }
     var d = this.drag;
     if (!d) return;
     this.drag = null;
@@ -281,7 +399,14 @@
   Editor.prototype.key = function (e) {
     var t = e.target;
     if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
+    if (t && t.closest && t.closest('dialog')) return;
     var store = this.store, k = e.key, meta = e.ctrlKey || e.metaKey;
+    if (!meta && !e.altKey) {                                     // view keys work with or without a selection
+      if (k === ' ' && !(t && t.closest && t.closest('button, a'))) { e.preventDefault(); this.setSpace(true); return; }
+      if (k === '+' || k === '=') { this.zoomIn(); return; }
+      if (k === '-' || k === '_') { this.zoomOut(); return; }
+      if (k === '0') { this.resetZoom(); return; }
+    }
     if (meta && (k === 'z' || k === 'Z')) { e.preventDefault(); if (e.shiftKey) store.redo(); else store.undo(); return; }
     if (meta && (k === 'y' || k === 'Y')) { e.preventDefault(); store.redo(); return; }
     if (meta && (k === 'a' || k === 'A')) { e.preventDefault(); store.selectAll(); return; }

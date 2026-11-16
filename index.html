@@ -79,6 +79,7 @@
     <button type="button" class="btn" id="btnUndo" title="Undo (Ctrl+Z)"><svg class="ic"><use href="#i-undo"/></svg><span class="lbl">Undo</span></button>
     <button type="button" class="btn" id="btnRedo" title="Redo (Ctrl+Shift+Z)"><svg class="ic"><use href="#i-redo"/></svg><span class="lbl">Redo</span></button>
     <button type="button" class="btn" id="btnSurprise" title="Start from a random flake"><svg class="ic"><use href="#i-shuffle"/></svg><span class="lbl">Surprise me</span></button>
+    <button type="button" class="btn kid-only" id="btnKidClear" title="Clear the whole snowflake"><svg class="ic"><use href="#i-reset"/></svg><span class="lbl">Start over</span></button>
     <div class="pop-wrap more-wrap">
       <button type="button" class="btn" id="btnMore" title="More options" aria-haspopup="true" aria-expanded="false" aria-controls="moreMenu"><svg class="ic"><use href="#i-more"/></svg><span class="lbl">More</span></button>
       <div class="pop pop-down" id="moreMenu" hidden>
@@ -95,7 +96,7 @@
         <a class="pop-item" id="tipLink" target="_blank" rel="noopener" hidden><span class="ic tip-ic" aria-hidden="true">&#9749;</span><span>Support Flake Lab <small>(Ko-fi)</small></span></a>
         <a class="pop-item" id="kidLink" href="?kids" target="_blank" rel="noopener"><svg class="ic"><use href="#i-logo"/></svg><span>Open kid mode <small>(new tab)</small></span></a>
         <div class="pop-sep" role="separator"></div>
-        <p class="pop-keys mono"><b>Shortcuts</b> drag · box-select empty paper · shift-click adds · Ctrl+G groups · arrows nudge · K cut/keep · F flip · C center · [ ] order · Del</p>
+        <p class="pop-keys mono"><b>Shortcuts</b> drag · box-select empty paper · shift-click adds · Ctrl+G groups · arrows nudge · K cut/keep · F flip · C center · [ ] order · Del · + / - / 0 zoom · Ctrl+scroll zooms · Space+drag pans</p>
       </div>
     </div>
     <span class="divider" aria-hidden="true"></span>
@@ -166,6 +167,11 @@
         <span class="chip"><i class="sw sw-cut"></i>Cut away</span>
         <span class="chip"><i class="sw sw-keep"></i>Paper stays</span>
         <span class="chip chip-fold" id="foldChip"></span>
+      </div>
+      <div class="zoombar" role="group" aria-label="Zoom">
+        <button type="button" class="zb" id="zoomOut" title="Zoom out (-)" aria-label="Zoom out">&minus;</button>
+        <button type="button" class="zb zb-reset" id="zoomReset" title="Reset zoom (0). Pinch or Ctrl + scroll to zoom; two fingers, scroll or Space + drag to move around." disabled><span id="zoomPct">100%</span><span class="zb-lbl">Reset zoom</span></button>
+        <button type="button" class="zb" id="zoomIn" title="Zoom in (+)" aria-label="Zoom in">+</button>
       </div>
     </div>
 
@@ -354,6 +360,17 @@
   </div>
   <div class="dlg-foot"><button type="button" class="btn" id="geoDone">Close</button></div>
  </dialog>
+ <dialog class="dlg dlg-confirm" id="clearDlg" aria-labelledby="clearTitle">
+  <div class="dlg-body confirm-body">
+    <h2 id="clearTitle">Start over?</h2>
+    <p>This clears your whole snowflake.</p>
+  </div>
+  <div class="dlg-foot">
+    <button type="button" class="btn" id="clearNo">No, keep it</button>
+    <button type="button" class="btn primary" id="clearYes">Yes, start over</button>
+  </div>
+ </dialog>
+
  <dialog class="dlg dlg-welcome" id="welcomeDlg" aria-labelledby="welcomeTitle">
   <div class="dlg-head">
     <h2 id="welcomeTitle">Welcome to Flake Lab</h2>

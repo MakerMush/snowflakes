@@ -228,6 +228,24 @@ button:disabled { cursor: not-allowed; }
   font-family: var(--mono); font-size: 11px; color: var(--steel-700);
 }
 .chip-fold { display: inline-flex; padding-left: 8px; }
+/* zoom controls, bottom right of the canvas */
+.zoombar {
+  position: absolute; right: 12px; bottom: 12px; display: flex; align-items: stretch; overflow: hidden;
+  background: rgba(255, 255, 255, .94); border: 1.5px solid var(--steel-300); border-radius: 999px; box-shadow: 0 2px 10px rgba(10, 14, 19, .08);
+}
+.zb { min-width: 36px; height: 34px; padding: 0 10px; border: 0; background: transparent; font: 700 18px/1 var(--sans); color: var(--black); }
+.zb + .zb { border-left: 1.5px solid var(--steel-200); }
+.zb:hover:not(:disabled) { background: var(--ice-100); }
+.zb:disabled { color: var(--steel-300); }
+.zb-reset { display: inline-flex; align-items: center; gap: 6px; min-width: 64px; justify-content: center; font: 600 12px var(--mono); }
+.zb-reset .zb-lbl { display: none; font-family: var(--sans); font-size: 12.5px; }
+.zb-reset.zoomed { color: var(--ice-700); }
+.zb-reset.zoomed .zb-lbl { display: inline; }
+#editor.panning { cursor: grab; }
+body.kids .zb { min-width: 52px; height: 48px; font-size: 24px; }
+body.kids .zb-reset { font-size: 14px; }
+body.kids .zb-reset .zb-lbl { font-size: 15px; }
+
 .sw { width: 16px; height: 16px; border-radius: 4px; border: 1.2px solid var(--ice-700); background: var(--ice-300); }
 .sw-keep {
   border-color: var(--steel-500);
@@ -489,6 +507,17 @@ body[data-mode="build"] .sw-keep { background: #fff; border-color: var(--steel-7
   .dlg-foot .btn { flex: 1; justify-content: center; padding: 0 10px; }
   .dlg-foot .btn span { white-space: nowrap; }
 }
+
+/* ---------- kid mode: Start over ---------- */
+
+.btn.kid-only { display: none; }
+body.kids .btn.kid-only { display: inline-flex; }
+.dlg-confirm { width: min(440px, calc(100vw - 24px)); }
+.confirm-body { flex-direction: column; gap: 8px; padding: 24px 24px 18px; text-align: center; }
+.confirm-body h2 { margin: 0; font-size: 28px; }
+.confirm-body p { margin: 0; font-size: 18px; color: var(--steel-700); }
+.dlg-confirm .dlg-foot { justify-content: center; }
+.dlg-confirm .dlg-foot .btn { flex: 1; justify-content: center; height: 56px; font-size: 18px; border-radius: 14px; }
 
 /* ---------- first-run welcome ---------- */
 

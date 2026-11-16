@@ -119,6 +119,8 @@ test('kid starter design is clean for kid scissors: 4 arms, no fine details, no 
   const a = AN.analyze(doc, { tool: 0, kids: true });
   assert.equal(a.stats.islands + a.stats.thinCut + a.stats.thinPaper + a.stats.interiorHoles, 0);
   assert.equal(a.report.tool.id, 'kid');
+  assert.ok(doc.objects.length >= 5, 'a full snowflake, not a couple of shapes');
+  assert.ok(a.stats.edgeCuts >= 5, 'every shape reaches an edge');
 });
 
 /* ---------- kid mode PDF: the student's name ---------- */
