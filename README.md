@@ -20,12 +20,22 @@ and visit http://localhost:8000.)
 That address is also what the printed QR code will point to. If the address changes, edit
 `siteUrl` in `js/config.js`.
 
+**Tip jar.** Set `tipUrl` in `js/config.js` to your Ko-fi page (for example `'https://ko-fi.com/yourname'`).
+A "Support Flake Lab" link then appears in the **More** menu and a short tip line in the Print dialog. Leave it
+empty to hide both. Kid mode never shows a tip link, and printed sheets never carry one.
+
+**Offline.** After one visit over https, the app opens with no internet (`sw.js` keeps a copy). It always
+fetches the newest version when online. If you add a script or stylesheet, add it to `FILES` in `sw.js`
+(a test fails if you forget).
+
 ## How to use it
 
-- Pick **4 arms** (45 degree wedge, 8 layers, easiest to cut) or **6 arms** (30 degree wedge, 12 layers).
+- First visit shows a short **welcome** (three steps). **More**, then **How it works** shows it again.
+- The **arms and mode** button at the top left (for example "6 arms · Cut mode") opens the setup.
+  Pick **4 arms** (45 degree wedge, 8 layers, easiest to cut) or **6 arms** (30 degree wedge, 12 layers).
 - Click a shape in the library to drop it on the wedge. Drag it, drag a square handle to resize,
   drag the round handle to rotate (hold Shift for 15 degree steps).
-- **Cut mode / Build mode** (top bar). Cut mode is the classic: a full sheet of paper, and shapes are cut out of it.
+- **Cut mode / Build mode** (same setup button). Cut mode is the classic: a full sheet of paper, and shapes are cut out of it.
   Build mode flips it: the wedge starts with nothing kept (only the protected center is paper) and every shape you
   add is paper that stays, so you build the flake outward. Anything that is not connected to the center falls out,
   so use **Add bridges** (or draw a shape that touches the center). A Cut shape in Build mode carves a hole back

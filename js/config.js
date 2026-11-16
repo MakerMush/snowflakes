@@ -6,6 +6,7 @@
     siteUrl: 'https://makermush.github.io/snowflakes/',
     appName: 'Flake Lab',
     storageKey: 'flakelab.v1',
+    tipUrl: 'https://ko-fi.com/makermush',   // tip jar (Ko-fi). Empty hides every tip link.
     kids: kidsFromUrl()                  // kid mode (?kids in the URL): a simplified, first-grade-friendly app
   };
   root.SF.config.kidsUrl = root.SF.config.siteUrl + '?kids';   // kid-mode printouts send people back to kid mode

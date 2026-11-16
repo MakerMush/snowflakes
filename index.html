@@ -50,16 +50,29 @@
     <span class="kid-badge mono" title="Kid mode is on (?kids in the address). Remove it for the full app.">kid mode</span>
   </div>
 
-  <div class="fold-picker">
-    <div class="seg" role="radiogroup" aria-label="Number of arms">
-      <button type="button" role="radio" aria-checked="false" data-arms="4">4 arms</button>
-      <button type="button" role="radio" aria-checked="true" data-arms="6">6 arms</button>
+  <div class="fold-picker pop-wrap">
+    <button type="button" class="btn setup-btn" id="btnSetup" title="Number of arms and design mode" aria-haspopup="true" aria-expanded="false" aria-controls="setupMenu">
+      <span class="setup-lbl" id="setupLbl" aria-live="polite">6 arms · Cut mode</span><svg class="ic caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="pop pop-down pop-left setup-pop" id="setupMenu" hidden>
+      <div class="setup-sec">
+        <span class="mono lab">Arms</span>
+        <div class="seg" role="radiogroup" aria-label="Number of arms">
+          <button type="button" role="radio" aria-checked="false" data-arms="4">4 arms</button>
+          <button type="button" role="radio" aria-checked="true" data-arms="6">6 arms</button>
+        </div>
+        <p class="pop-note">4 arms folds into 8 layers: easier to cut. 6 arms folds into 12: the classic snowflake. Your shapes stay put.</p>
+      </div>
+      <div class="pop-sep" role="separator"></div>
+      <div class="setup-sec">
+        <span class="mono lab">Mode</span>
+        <div class="seg" role="radiogroup" aria-label="Design mode">
+          <button type="button" role="radio" aria-checked="true" data-setmode="cut" title="Cut mode: start with a full sheet of paper and cut shapes out of it">Cut mode</button>
+          <button type="button" role="radio" aria-checked="false" data-setmode="build" title="Build mode: start with nothing and add shapes to build the snowflake">Build mode</button>
+        </div>
+        <p class="pop-note"><b>Cut:</b> start with paper and cut shapes out. <b>Build:</b> start with nothing and add paper. Switching starts a fresh wedge (Undo brings yours back).</p>
+      </div>
     </div>
-    <div class="seg" role="radiogroup" aria-label="Design mode">
-      <button type="button" role="radio" aria-checked="true" data-setmode="cut" title="Cut mode: start with a full sheet of paper and cut shapes out of it">Cut mode</button>
-      <button type="button" role="radio" aria-checked="false" data-setmode="build" title="Build mode: start with nothing and add shapes to build the snowflake">Build mode</button>
-    </div>
-    <span class="fold-meta mono" id="foldMeta" aria-live="polite"></span>
   </div>
 
   <div class="actions">
@@ -69,6 +82,7 @@
     <div class="pop-wrap more-wrap">
       <button type="button" class="btn" id="btnMore" title="More options" aria-haspopup="true" aria-expanded="false" aria-controls="moreMenu"><svg class="ic"><use href="#i-more"/></svg><span class="lbl">More</span></button>
       <div class="pop pop-down" id="moreMenu" hidden>
+        <button type="button" class="pop-item" id="btnHelp"><svg class="ic" aria-hidden="true"><use href="#i-logo"/></svg><span>How it works</span></button>
         <button type="button" class="pop-item" id="btnReset" title="Clear the template"><svg class="ic"><use href="#i-reset"/></svg><span>Clear the wedge</span></button>
         <div class="pop-sep" role="separator"></div>
         <div class="pop-group">
@@ -78,6 +92,7 @@
           <p class="pop-note">Keeps a small circle of paper in the middle so the flake holds together.</p>
         </div>
         <div class="pop-sep" role="separator"></div>
+        <a class="pop-item" id="tipLink" target="_blank" rel="noopener" hidden><span class="ic tip-ic" aria-hidden="true">&#9749;</span><span>Support Flake Lab <small>(Ko-fi)</small></span></a>
         <a class="pop-item" id="kidLink" href="?kids" target="_blank" rel="noopener"><svg class="ic"><use href="#i-logo"/></svg><span>Open kid mode <small>(new tab)</small></span></a>
         <div class="pop-sep" role="separator"></div>
         <p class="pop-keys mono"><b>Shortcuts</b> drag · box-select empty paper · shift-click adds · Ctrl+G groups · arrows nudge · K cut/keep · F flip · C center · [ ] order · Del</p>
@@ -264,6 +279,7 @@
         <span id="printNameHint">Leave it blank for a line to write on.</span>
       </div>
       <p class="dlg-note mono" id="printSummary"></p>
+      <p class="dlg-tip" id="printTip" hidden>Flake Lab is free for classrooms. If it helped, you can <a id="printTipLink" target="_blank" rel="noopener">leave a tip &#9749;</a></p>
     </div>
   </div>
   <div class="dlg-foot">
@@ -337,6 +353,21 @@
     </div>
   </div>
   <div class="dlg-foot"><button type="button" class="btn" id="geoDone">Close</button></div>
+ </dialog>
+ <dialog class="dlg dlg-welcome" id="welcomeDlg" aria-labelledby="welcomeTitle">
+  <div class="dlg-head">
+    <h2 id="welcomeTitle">Welcome to Flake Lab</h2>
+    <button type="button" class="icon-btn" id="welcomeClose" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></g></svg></button>
+  </div>
+  <div class="dlg-body welcome-body">
+    <ol class="welcome-steps">
+      <li><b>Design one wedge</b><span>Add shapes from the left. Each one is cut from paper folded into this wedge.</span></li>
+      <li><b>Watch it unfold</b><span>The preview shows the whole snowflake, with every arm a mirror of the next.</span></li>
+      <li><b>Print, fold, cut</b><span>Print the template, fold on the dashed lines, cut on the black lines, and unfold.</span></li>
+    </ol>
+    <p class="dlg-note welcome-tip"><b>Teaching young kids?</b> Kid mode has bigger buttons and fewer choices. Open it from <b>More</b>, or add <code>?kids</code> to the address.</p>
+  </div>
+  <div class="dlg-foot"><button type="button" class="btn primary" id="welcomeGo">Let's make one</button></div>
  </dialog>
  <div id="printRoot" aria-hidden="true"></div>
 

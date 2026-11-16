@@ -124,6 +124,7 @@
     b.addEventListener('click', function () {
       var m = b.getAttribute('data-setmode'), had = store.doc.objects.length;
       if (KIDS || !store.setMode(m)) return;
+      setSetup(false);
       var msg = m === 'build' ? 'Build mode: nothing is kept yet. Add shapes to build the flake.'
         : 'Cut mode: a full sheet of paper. Add shapes to cut them out.';
       if (had) toast(msg + ' Your design was cleared.', 'Undo', function () { store.undo(); });
@@ -141,10 +142,16 @@
     popClosers.push(set);
     return set;
   }
-  var setMore = popover('btnMore', 'moreMenu'), setAlign = popover('btnAlign', 'alignMenu');
+  var setMore = popover('btnMore', 'moreMenu'), setAlign = popover('btnAlign', 'alignMenu'), setSetup = popover('btnSetup', 'setupMenu');
   document.addEventListener('pointerdown', function (e) { if (!(e.target.closest && e.target.closest('.pop-wrap'))) closePops(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePops(); });
   $('kidLink').addEventListener('click', function () { setMore(false); });
+
+  /* tip jar: only when a Ko-fi (or other https) address is set in config.js, and never in kid mode */
+  var TIP = /^https:\/\/[^\s"'<>]+$/.test(SF.config.tipUrl || '') && !KIDS ? SF.config.tipUrl : '';
+  ['tipLink', 'printTipLink'].forEach(function (id) { if (TIP) $(id).href = TIP; });
+  $('tipLink').hidden = $('printTip').hidden = !TIP;
+  $('tipLink').addEventListener('click', function () { setMore(false); });
 
   $('btnReset').addEventListener('click', function () {
     setMore(false);
@@ -235,7 +242,7 @@
       ? 'Build mode: nothing is kept yet. Click a shape to add paper, then drag, resize and rotate it. Connect everything to the center.'
       : 'Click a shape to drop it on the wedge, then drag, resize and rotate it.';
     var info = G.groupInfo(doc.arms);
-    $('foldMeta').textContent = info.wedgeDeg + '° wedge · ' + info.order + ' layers';
+    $('setupLbl').textContent = doc.arms + ' arms · ' + (doc.mode === 'build' ? 'Build' : 'Cut') + ' mode';
     $('foldChip').textContent = info.wedgeDeg + '° · ' + info.order + ' layers';
     $('btnUndo').disabled = !store.canUndo();
     $('btnRedo').disabled = !store.canRedo();
@@ -417,9 +424,37 @@
     toastTimer = setTimeout(function () { t.hidden = true; }, 5000);
   }
 
+  /* ---------- first-run welcome (full mode only; "How it works" in the More menu reopens it) ---------- */
+
+  var WELCOME_KEY = SF.config.storageKey + '.welcomed';
+  function showWelcome() {
+    var d = $('welcomeDlg');
+    if (d.showModal) { if (!d.open) d.showModal(); } else d.setAttribute('open', '');
+  }
+  function closeWelcome() {
+    var d = $('welcomeDlg');
+    if (d.close) d.close(); else d.removeAttribute('open');
+    try { root.localStorage.setItem(WELCOME_KEY, '1'); } catch (e) { /* storage blocked */ }
+  }
+  $('welcomeGo').addEventListener('click', closeWelcome);
+  $('welcomeClose').addEventListener('click', closeWelcome);
+  $('welcomeDlg').addEventListener('cancel', function () { try { root.localStorage.setItem(WELCOME_KEY, '1'); } catch (e) { /* storage blocked */ } });
+  $('btnHelp').addEventListener('click', function () { setMore(false); showWelcome(); });
+  if (!KIDS) {
+    var seen = false;
+    try { seen = !!root.localStorage.getItem(WELCOME_KEY); } catch (e) { seen = true; }   // no storage: do not nag on every visit
+    if (!seen) showWelcome();
+  }
+
   SF.printUI.init({ store: store, toast: toast, kids: KIDS, getTool: function () { return tool; } });
   SF.geoLab.init({ store: store, toast: toast, getTool: function () { return tool; } });
   SF.photoPanel.init({ store: store, toast: toast, onAdded: function () { if (isNarrow()) go('design'); } });
+
+  /* ---------- offline: keep a copy of the app for flaky school Wi-Fi (see sw.js) ---------- */
+
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    navigator.serviceWorker.register('sw.js').catch(function () { /* offline copy is a bonus, never an error */ });
+  }
 
   /* ---------- phone tabs ---------- */
 
