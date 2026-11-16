@@ -159,3 +159,16 @@ test('SVG and PDF are made from the same draw list', () => {
   assert.equal((svg.match(/<text /g) || []).length, res.pages[0].items.filter((i) => i.t === 'text').length);
   assert.equal(PR.fileName({ arms: 4 }), 'flake-lab-4arm-template.pdf');
 });
+
+test('optional name: a typed name replaces the blank name line on a regular 6-arm template', () => {
+  const an = AN.analyze(ST.starterDoc());
+  const pages = PR.layout(an, { studentName: '  Ms. Rivera ' }).pages;
+  pages.forEach(p => {
+    const t = p.items.filter(it => it.t === 'text');
+    assert.ok(t.some(it => it.s === 'Ms. Rivera' && it.font === 'F2' && it.size >= 20), 'name printed big');
+    assert.ok(!t.some(it => it.s === 'Name'), 'no blank line');
+  });
+  assert.equal(PR.fileName(an.doc, 'Ms. Rivera'), 'flake-lab-ms-rivera-snowflake.pdf');
+  const blank = PR.layout(an, { studentName: '   ' }).pages[0].items;
+  assert.ok(blank.some(it => it.t === 'text' && it.s === 'Name'), 'a blank name keeps the write-in line');
+});

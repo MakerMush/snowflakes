@@ -8,6 +8,7 @@
     storageKey: 'flakelab.v1',
     kids: kidsFromUrl()                  // kid mode (?kids in the URL): a simplified, first-grade-friendly app
   };
+  root.SF.config.kidsUrl = root.SF.config.siteUrl + '?kids';   // kid-mode printouts send people back to kid mode
   /** True for ?kids, ?kids=1 and the like; ?kids=0 or ?kids=false leave it off. */
   function kidsFromUrl() {
     try {

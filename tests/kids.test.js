@@ -120,3 +120,74 @@ test('kid starter design is clean for kid scissors: 4 arms, no fine details, no 
   assert.equal(a.stats.islands + a.stats.thinCut + a.stats.thinPaper + a.stats.interiorHoles, 0);
   assert.equal(a.report.tool.id, 'kid');
 });
+
+/* ---------- kid mode PDF: the student's name ---------- */
+
+const PR = require('../js/print');
+
+function nameItems(page) { return page.items.filter(it => it.t === 'text' && it.name); }
+
+test('student name: cleaned for the PDF fonts', () => {
+  assert.equal(PR.cleanName('  Zoë   Núñez '), 'Zoe Nunez');
+  assert.equal(PR.cleanName('Ana<script>\u0007'), 'Ana<script>');      // the PDF writer and SVG escaping handle < >
+  assert.equal(PR.cleanName('李'), '');
+  assert.equal(PR.cleanName('x'.repeat(50)).length, 30);
+  assert.equal(PR.cleanName(undefined), '');
+});
+
+test('student name: printed big and bold on every page, replacing the blank name line', () => {
+  const doc = ST.createStore(ST.kidStarterDoc(), { kids: true }).doc;
+  const an = AN.analyze(doc, { tool: 0, kids: true });
+  const res = PR.layout(an, { studentName: 'Maya' });
+  assert.equal(res.pages.length, 2);
+  res.pages.forEach((p, i) => {
+    const n = nameItems(p);
+    assert.equal(n.length, 1, 'page ' + (i + 1) + ' shows the name once');
+    assert.equal(n[0].s, 'Maya');
+    assert.equal(n[0].font, 'F2');
+    assert.ok(n[0].size >= 20, 'the name is the biggest text on the page');
+    assert.ok(!p.items.some(it => it.t === 'text' && it.s === 'Name'), 'no blank name line when a name is given');
+  });
+  assert.ok(PR.toSVG(res.pages[0]).includes('>Maya</text>'));
+});
+
+test('student name: long names shrink to fit beside the title', () => {
+  const an = AN.analyze(ST.kidStarterDoc(), { tool: 0, kids: true });
+  const n = nameItems(PR.layout(an, { studentName: 'Maximiliana Wolfeschlegel' }).pages[0])[0];
+  assert.ok(require('../js/pdf').textWidth(n.s, 'F2', n.size) <= 276 + 1e-6);
+});
+
+test('student name: the PDF file contains the name, and the file is named after it', () => {
+  const an = AN.analyze(ST.kidStarterDoc(), { tool: 0, kids: true });
+  const pages = PR.layout(an, { studentName: 'Maya Lee' }).pages;
+  const bytes = PR.toPDF(pages, { title: "Maya Lee's snowflake", author: 'Maya Lee' });
+  const txt = Buffer.from(bytes).toString('latin1');
+  assert.ok(txt.includes('(Maya Lee) Tj'), 'name drawn on the page');
+  assert.ok(txt.includes('/Author (Maya Lee)'), 'name in the PDF info');
+  assert.equal(PR.fileName(an.doc, 'Maya Lee'), 'flake-lab-maya-lee-snowflake.pdf');
+  assert.equal(PR.fileName(an.doc, ''), 'flake-lab-4arm-template.pdf');
+});
+
+test('regular mode PDF is unchanged: no student name, blank name line', () => {
+  const an = AN.analyze(ST.starterDoc());
+  const p = PR.layout(an).pages[0];
+  assert.equal(nameItems(p).length, 0);
+  assert.ok(p.items.some(it => it.t === 'text' && it.s === 'Name'));
+});
+
+test('QR code: kid-mode templates lead back to kid mode, full templates to the full app, both inside the margin', () => {
+  const CFG = require('../js/config');
+  const Q = require('../js/qr');
+  assert.equal(CFG.kidsUrl, CFG.siteUrl + '?kids');
+  const an = AN.analyze(ST.kidStarterDoc(), { tool: 0, kids: true });
+  [[CFG.kidsUrl, 'kids'], [CFG.siteUrl, 'full']].forEach(([url, label]) => {
+    const p = PR.layout(an, { siteUrl: url }).pages[0];
+    assert.ok(p.items.some(it => it.t === 'text' && it.s === PR.draw.displayUrl(url)), label + ' address printed');
+    const size = Q.encode(url).size;
+    const qr = p.items.find(it => it.t === 'path' && it.fill && it.d.length === Q.encode(url).modules.flat().filter(Boolean).length * 5);
+    assert.ok(qr, label + ' QR drawn from its own address');
+    const xs = qr.d.filter(op => op.length > 1).map(op => op[1]);
+    assert.ok(Math.max(...xs) <= 576 + 1e-9, label + ' QR stays inside the right margin');
+    assert.ok(Math.abs(Math.max(...xs) - 576) < 1e-9 && size > 0);
+  });
+});

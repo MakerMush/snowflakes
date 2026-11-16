@@ -130,7 +130,24 @@
       else toast(msg);
     });
   });
+  /* ---------- popovers (More menu, Align) ---------- */
+
+  var popClosers = [];
+  function closePops() { popClosers.forEach(function (f) { f(false); }); }
+  function popover(btnId, popId) {
+    var btn = $(btnId), pop = $(popId);
+    function set(open) { pop.hidden = !open; btn.setAttribute('aria-expanded', String(open)); btn.classList.toggle('on', open); }
+    btn.addEventListener('click', function () { var open = pop.hidden; closePops(); set(open); });
+    popClosers.push(set);
+    return set;
+  }
+  var setMore = popover('btnMore', 'moreMenu'), setAlign = popover('btnAlign', 'alignMenu');
+  document.addEventListener('pointerdown', function (e) { if (!(e.target.closest && e.target.closest('.pop-wrap'))) closePops(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePops(); });
+  $('kidLink').addEventListener('click', function () { setMore(false); });
+
   $('btnReset').addEventListener('click', function () {
+    setMore(false);
     if (!store.doc.objects.length) { toast('The wedge is already empty.'); return; }
     store.clear();
     toast('Template cleared.', 'Undo', function () { store.undo(); });
@@ -226,7 +243,8 @@
     $('hubR').value = doc.hubR;
     $('hubR').disabled = !doc.hub;
 
-    ['btnFlip', 'btnDup', 'btnFront', 'btnBack', 'btnDel', 'roleCut', 'roleKeep', 'alignCenter'].forEach(function (id) { $(id).disabled = !o; });
+    ['btnFlip', 'btnDup', 'btnFront', 'btnBack', 'btnDel', 'roleCut', 'roleKeep', 'alignCenter', 'btnAlign'].forEach(function (id) { $(id).disabled = !o; });
+    if (!o) setAlign(false);
     ['alignLeft', 'alignRight'].forEach(function (id) { $(id).disabled = !o || multi; });
     $('btnGroup').disabled = !multi || oneGroup;
     $('btnUngroup').disabled = !grouped.length;
@@ -237,7 +255,6 @@
     $('roleCut').setAttribute('aria-checked', String(allRole('cut')));
     $('roleKeep').setAttribute('aria-checked', String(allRole('keep')));
     $('selbar').classList.toggle('idle', !o);
-    $('alignbar').classList.toggle('idle', !o);
 
     var H = Math.round(info.wedgeDeg / 2 * 10) / 10;
     $('alignCenter').title = multi ? 'Center (C): move the selection so its middle sits on the middle line'
@@ -289,6 +306,7 @@
     $('cardChecks').classList.remove('stale');
     renderComplexity();
     renderChecks();
+    if (KIDS) renderKidStatus();
     applyOverlay();
   }
 
@@ -307,6 +325,22 @@
   }
 
   function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+
+  /** Kid mode's one-line status, in place of the complexity and cut-check cards. */
+  function renderKidStatus() {
+    var st = analysis.stats, n = store.doc.objects.length, s;
+    if (!n) s = ['\uD83D\uDC46', 'Tap a shape to start!', 'Pick one from the left.'];
+    else if (st.islands) s = ['\uD83E\uDDE9', 'Some pieces will fall out.', 'Tap Fix it to hold them on.', true];
+    else if (st.thinPaper || st.thinCut) s = ['\uD83D\uDD0D', 'Some parts are too tiny.', 'Make the red parts bigger.'];
+    else if (st.interiorHoles) s = ['\u2702\uFE0F', 'Ready to cut!', 'A grown-up helps with holes in the middle.'];
+    else s = ['\u2702\uFE0F', 'Ready to cut!', 'Tap Save my PDF when you are done.'];
+    $('ksIcon').textContent = s[0];
+    $('ksTitle').textContent = s[1];
+    $('ksSub').textContent = s[2];
+    $('ksFix').hidden = !s[3];
+    $('kidStatus').classList.toggle('ks-bad', !!st.islands || !!(st.thinPaper || st.thinCut));
+  }
+  $('ksFix').addEventListener('click', function () { $('btnBridges').click(); });
 
   function renderChecks() {
     var st = analysis.stats, items = [], tn = AN.toolsFor(KIDS)[tool].short.toLowerCase();

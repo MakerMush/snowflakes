@@ -55,10 +55,10 @@ That address is also what the printed QR code will point to. If the address chan
   an empty design is not printed. The PDF and QR code are written by small modules in this folder, no libraries.
 - Every shape is either **Cut** (paper is removed) or **Keep** (paper stays, even over cuts).
   Whatever is painted last wins, so Keep on top of Cut makes a bridge or an island of paper.
-- **Protect center** keeps a small solid hub so the arms do not fall apart at the middle.
+- **Protect center** (in the **More** menu) keeps a small solid hub so the arms do not fall apart at the middle.
 - Keys: Ctrl+A selects all, Ctrl+G groups, Ctrl+Shift+G ungroups, Esc deselects, arrows nudge (Shift for bigger steps), K toggles cut/keep, F flips, `[` and `]` change
   stacking, Ctrl+D duplicates, Delete removes, Ctrl+Z / Ctrl+Shift+Z undo and redo.
-- **Align** (bar under the canvas): **Center** moves the shape onto the middle line and sets rotation to 0.
+- **Align** (button in the selection bar): **Center** moves the shape onto the middle line and sets rotation to 0.
   **Left edge** and **Right edge** swing the shape to the fold line and rotate it to that edge's angle
   (30 degrees for 6 arms, 22.5 for 4). Choose **On the fold** to center it on the fold line (the mirrored
   copy completes a symmetric shape) or **Inside** to keep it in the wedge with its side touching the fold.
@@ -70,16 +70,25 @@ That address is also what the printed QR code will point to. If the address chan
   touches the frame; anything that does not touch falls out, and the cut checks say so. The others are Feather star,
   Starburst, Leaf fern and Pine fern. Picking one replaces the wedge (a toast offers Undo) and switches to 6 arms. They are
   ordinary designs made only from library shapes, so you can keep editing.
-- The design autosaves in your browser. **Reset** clears it (and offers Undo). **Surprise me** makes a random one.
+- The design autosaves in your browser. **Clear the wedge** (in the **More** menu) clears it (and offers Undo). **Surprise me** makes a random one.
+
+## Your name on the template
+
+In the Print template dialog, with **Name line** on, you can type a name to print. It appears big and bold
+at the top of every page in place of the blank line, and names the PDF file. Leave it blank for a line to
+write on.
 
 ## Kid mode
 
 Add `?kids` to the address (for example `index.html?kids`) for a first-grade version on tablets.
 It locks the design to 4 arms, Cut mode and kid scissors, and hides the advanced controls (Build mode,
 6 arms, Geometry mode, Photo/Presets, Reset, align and hub bars, grouping and layer order, Cut/Keep, the
-layers list). Shape tiles and buttons are bigger, shapes cannot shrink below about 11 mm, and kid scissors
-flag anything under about 6 mm. Print adds bridges first and warns, in big text, when a hole sits in the
-middle and needs a grown-up to poke it through. Kid mode saves its design separately (`flakelab.v1.kids`),
+layers list), and swaps the complexity and cut-check cards for one plain status line with a **Fix it** button. Shape tiles and buttons are bigger, shapes cannot shrink below about 11 mm, and kid scissors
+flag anything under about 6 mm. The last step is **Save my PDF** (there are no print options): it adds
+bridges first, warns in big text when a hole sits in the middle and needs a grown-up to poke it through,
+and asks the student to type their name. Saving stays off until a name is entered; the name is printed
+big on every page, stored in the PDF's author and title, and used for the file name
+(`flake-lab-maya-lee-snowflake.pdf`). Kid mode saves its design separately (`flakelab.v1.kids`),
 so it never overwrites a design made in the full app. Leave off `?kids` (or use `?kids=0`) for the full app.
 
 ## Geometry mode (phase 5)

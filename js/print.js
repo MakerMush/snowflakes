@@ -168,10 +168,25 @@
     return { item: { t: 'path', d: ops, fill: INK }, size: q.size * module };
   }
 
+  /**
+   * A name typed by a student, made safe for the page: accents dropped (the PDF fonts are plain
+   * Helvetica), anything outside printable ASCII removed, spaces tidied, at most 30 characters.
+   */
+  function cleanName(s) {
+    var t = String(s === undefined || s === null ? '' : s);
+    if (t.normalize) t = t.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return t.replace(/[^\x20-\x7e]/g, '').replace(/\s+/g, ' ').trim().slice(0, 30);
+  }
+
+  var NAME_SIZE = 28;                        // the student's name, top right, big and bold
   function header(items, title, info, o) {
     items.push(text(36, 40, o.appName, 20, { font: 'F2' }));
     items.push(text(36 + PDF.textWidth(o.appName, 'F2', 20) + 8, 40, title, 10, { fill: MUTED }));
-    if (o.name) {
+    if (o.studentName) {
+      var maxW = 576 - 300, w = PDF.textWidth(o.studentName, 'F2', NAME_SIZE);
+      items.push(text(576, 20, 'Made by', 9, { fill: MUTED, anchor: 'end' }));
+      items.push(text(576, 46, o.studentName, w > maxW ? NAME_SIZE * maxW / w : NAME_SIZE, { font: 'F2', anchor: 'end', name: true }));
+    } else if (o.name) {
       items.push(text(380, 40, 'Name', 9, { fill: MUTED }));
       items.push(line(410, 41, 576, 41, { stroke: INK, lw: 0.6 }));
     }
@@ -230,11 +245,11 @@
     items.push(text(bx + 36, by + 15, '1 inch = 2.54 cm', 8, { anchor: 'middle', fill: MUTED }));
     items.push(text(bx + 36, by + 28, 'Print at 100% (Actual size)', 8, { anchor: 'middle', font: 'F2' }));
 
-    // QR code and where it leads
-    var qr = qrItems(o.siteUrl, 518, 702, 2);
-    items.push(qr.item);
-    items.push(text(504, 726, 'Design your own:', 8, { anchor: 'end', fill: MUTED }));
-    items.push(text(504, 738, displayUrl(o.siteUrl), 8, { anchor: 'end', font: 'F2' }));
+    // QR code and where it leads, right edge on the margin (a longer address makes a bigger code)
+    var qsize = Q.encode(o.siteUrl).size * 2, qx = 576 - qsize;
+    items.push(qrItems(o.siteUrl, qx, 702, 2).item);
+    items.push(text(qx - 14, 726, 'Design your own:', 8, { anchor: 'end', fill: MUTED }));
+    items.push(text(qx - 14, 738, displayUrl(o.siteUrl), 8, { anchor: 'end', font: 'F2' }));
 
     return { w: PAGE_W, h: PAGE_H, items: items };
   }
@@ -291,12 +306,14 @@
 
   /**
    * analysis: the result of analyze(doc). opts: { guide (default true), shade (true), name (true),
-   * siteUrl, appName }. Returns { pages: [...], info }.
+   * studentName (printed big on every page in place of the blank name line), siteUrl, appName }.
+   * Returns { pages: [...], info }.
    */
   function layout(analysis, opts) {
     opts = opts || {};
     var o = {
       guide: opts.guide !== false, shade: opts.shade !== false, name: opts.name !== false,
+      studentName: cleanName(opts.studentName),
       siteUrl: opts.siteUrl || CFG.siteUrl, appName: opts.appName || CFG.appName
     };
     var n = analysis.doc.arms, gi = G.groupInfo(n), rep = analysis.report;
@@ -339,10 +356,14 @@
   /** The pages as a PDF file (Uint8Array). */
   function toPDF(pages, meta) { return PDF.build(pages, meta || { title: CFG.appName + ' template', author: CFG.appName }); }
 
-  function fileName(doc) { return 'flake-lab-' + doc.arms + 'arm-template.pdf'; }
+  /** With a student name: flake-lab-maya-snowflake.pdf; otherwise flake-lab-6arm-template.pdf. */
+  function fileName(doc, studentName) {
+    var slug = cleanName(studentName).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    return slug ? 'flake-lab-' + slug + '-snowflake.pdf' : 'flake-lab-' + doc.arms + 'arm-template.pdf';
+  }
 
   return {
-    layout: layout, toSVG: toSVG, toPDF: toPDF, fileName: fileName,
+    layout: layout, toSVG: toSVG, toPDF: toPDF, fileName: fileName, cleanName: cleanName,
     outlines: outlines, splitRim: splitRim, foldRays: foldRays, foldStepsInfo: foldStepsInfo,
     PAGE_W: PAGE_W, PAGE_H: PAGE_H, DISC_CENTER: [CX, CY], PT_PER_UNIT: K,
     draw: { circleOps: circleOps, arcOps: arcOps, sectorOps: sectorOps, polyOps: polyOps, line: line, text: text, wrap: wrap,
