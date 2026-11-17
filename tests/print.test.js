@@ -204,3 +204,41 @@ test('math mode has its own address for the printed QR code', () => {
   assert.ok(CFG.feedbackEmail === '' || /@/.test(CFG.feedbackEmail));
   assert.ok(CFG.feedbackUrl === '' || /^https:\/\//.test(CFG.feedbackUrl));
 });
+
+test('every template page shows a small picture of the unfolded snowflake, clear of the paper circle', () => {
+  const ST2 = require('../js/state'), AN2 = require('../js/analyze'), PR2 = require('../js/print');
+  [4, 6].forEach(arms => {
+    const doc = ST2.starterDoc(); doc.arms = arms;
+    const an = AN2.analyze(doc);
+    [{}, { oneWedge: true }, { shade: false }, { studentName: 'Maya' }].forEach(opts => {
+      const p = PR2.layout(an, opts).pages[0];
+      const ring = p.items.find(it => it.preview);
+      assert.ok(ring, arms + ' arms ' + JSON.stringify(opts) + ': preview drawn');
+      const cuts = p.items.filter(it => it.t === 'path' && it.fill === '#ffffff' && it.evenodd);
+      assert.ok(cuts.length >= 1, 'cutouts drawn white in the preview');
+      cuts.forEach(c => c.d.filter(op => op.length > 1).forEach(op => {
+        assert.ok(Math.hypot(op[1] - 542, op[2] - 136) <= 34.5, 'cutouts stay inside the little picture');
+        assert.ok(Math.hypot(op[1] - 306, op[2] - 400) > 300, 'the picture does not overlap the paper circle');
+      }));
+    });
+  });
+});
+
+test('one-wedge option: the gray shading stays inside the blue wedge too', () => {
+  const ST2 = require('../js/state'), AN2 = require('../js/analyze'), PR2 = require('../js/print'), G2 = require('../js/geometry');
+  [4, 6].forEach(arms => {
+    const doc = ST2.starterDoc(); doc.arms = arms;
+    const an = AN2.analyze(doc), a0 = G2.leftEdgeAngle(arms), al = Math.PI / arms;
+    const shade = page => page.items.filter(it => it.t === 'path' && it.fill === '#dde2e8' && it.evenodd)
+      .flatMap(it => it.d.filter(op => op.length > 1).map(op => [op[1] - 306, op[2] - 400]));
+    const inWedge = ([x, y]) => {
+      if (Math.hypot(x, y) < 1) return true;
+      let d = Math.atan2(y, x) - a0; d = ((d % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI); if (d > Math.PI) d -= 2 * Math.PI;
+      return d >= -1e-6 && d <= al + 1e-6;
+    };
+    const full = shade(PR2.layout(an).pages[0]), one = shade(PR2.layout(an, { oneWedge: true }).pages[0]);
+    assert.ok(full.some(p => !inWedge(p)), 'normally the whole circle is shaded');
+    assert.ok(one.length > 0, 'the blue wedge is still shaded');
+    assert.ok(one.every(inWedge), 'no gray outside the blue wedge');
+  });
+});

@@ -76,8 +76,9 @@ checks every file with the server first, so it never serves a stale copy. If you
 - **Print template** (top bar, or Ctrl+P). A preview shows US Letter pages: the 7.5 inch paper disc with numbered fold
   lines (1, then 2, then 3), the cut lines drawn from the same raster the checks use, gray shading for paper that gets
   cut away, a 1 inch scale bar, the difficulty and best tool, and a QR code that points at `siteUrl` in `js/config.js`.
-  Options: a second page with a step by step fold guide and cutting tips, the shading, **cut lines on the blue wedge
-  only** (the wedge you actually cut; the rest of the circle keeps its shading), and a Name line. **Print** uses
+  Options: a second page with a step by step fold guide and cutting tips, the shading, **blue wedge
+  only** (cut lines and gray shading on just the wedge you actually cut, the rest of the circle left plain), and a
+  Name line. Every template also has a small picture of the finished, unfolded snowflake in the top right corner. **Print** uses
   the browser's print window (choose Actual size or 100%, not Fit to page); **Download PDF** saves a real vector PDF
   with selectable text. A warning appears if the design has loose pieces or details too fine for the chosen tool, and
   an empty design is not printed. The PDF and QR code are written by small modules in this folder, no libraries.

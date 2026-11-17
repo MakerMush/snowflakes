@@ -182,10 +182,42 @@
       }
       if (cur && cur.length > 1) res.open.push(cur);
     }
-    var res = { closed: [], open: [], shade: out.shade };
+    var res = { closed: [], open: [], shade: out.shade.map(function (l) { return clipPoly(l, a0, al); }).filter(function (l) { return l.length > 2; }) };
     out.closed.forEach(function (l) { runs(l, true, res); });
     out.open.forEach(function (l) { runs(l, false, res); });
     return res;
+  }
+
+  /**
+   * Clip a polygon to the wedge between angles a0 and a0+al (al < 180°, so the wedge is the overlap of two
+   * half-planes through the centre). Clipping every loop keeps even-odd filling right, holes and all.
+   */
+  function clipPoly(poly, a0, al) {
+    function half(pts, ux, uy, sign) {
+      var res = [];
+      function side(p) { return sign * (ux * p[1] - uy * p[0]); }
+      for (var i = 0; i < pts.length; i++) {
+        var a = pts[i], b = pts[(i + 1) % pts.length], sa = side(a), sb = side(b);
+        if (sa >= 0) res.push(a);
+        if ((sa >= 0) !== (sb >= 0)) { var t = sa / (sa - sb); res.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]); }
+      }
+      return res;
+    }
+    var p = half(poly, Math.cos(a0), Math.sin(a0), 1);
+    return p.length ? half(p, Math.cos(a0 + al), Math.sin(a0 + al), -1) : p;
+  }
+
+  /** A small picture of the finished, unfolded snowflake: paper tinted, cutouts white. */
+  var PAPER = '#cfe6f5';
+  function flakePreview(items, out, cx, cy, r) {
+    var k = r / G.R;
+    items.push({ t: 'path', d: circleOps(cx, cy, r), fill: PAPER });
+    if (out.shade.length) {
+      var ops = [];
+      out.shade.forEach(function (l) { ops = ops.concat(polyOps(l.map(function (p) { return [cx + p[0] * k, cy + p[1] * k]; }), true)); });
+      items.push({ t: 'path', d: ops, fill: '#ffffff', evenodd: true });
+    }
+    items.push({ t: 'path', d: circleOps(cx, cy, r), stroke: INK, lw: 0.9, preview: true });
   }
 
   /* ---------- page 1: the template ---------- */
@@ -228,6 +260,7 @@
 
   function templatePage(analysis, info, o) {
     var n = analysis.doc.arms, items = [], out = outlines(analysis), rays = foldRays(n), al = Math.PI / n, a0 = G.leftEdgeAngle(n);
+    var whole = out;
     if (o.oneWedge) out = clipToWedge(out, a0, al);
 
     header(items, 'fold-and-cut template', info, o);
@@ -259,6 +292,11 @@
       items.push({ t: 'path', d: circleOps(cx, cy, 6.5), fill: '#ffffff', stroke: LINE, lw: 0.8 });
       items.push(text(cx, cy + 3, String(r.step), 8.5, { font: 'F2', anchor: 'middle' }));
     });
+
+    // what it will look like: top right corner, clear of the circle and its step chips
+    flakePreview(items, whole, 542, 136, 34);
+    items.push(text(500, 132, 'Your snowflake', 8, { anchor: 'end', fill: MUTED }));
+    items.push(text(500, 142, 'when unfolded', 8, { anchor: 'end', fill: MUTED }));
 
     // legend
     var ly = 714;
