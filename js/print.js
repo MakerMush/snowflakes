@@ -155,6 +155,39 @@
     return res;
   }
 
+  /**
+   * Keep only the parts of the cut lines inside the base wedge (angles a0..a0+al), for templates that show
+   * the lines on the blue wedge alone: that wedge is the only one you actually cut. Closed loops that cross
+   * a fold become open runs. The traced points are dense (half a unit apart), so cutting at points is exact enough.
+   */
+  function clipToWedge(out, a0, al) {
+    var tol = 0.02;
+    function inside(p) {
+      if (p[0] * p[0] + p[1] * p[1] < 1) return true;
+      var d = Math.atan2(p[1], p[0]) - a0;
+      d = ((d % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+      if (d > Math.PI) d -= 2 * Math.PI;
+      return d >= -tol && d <= al + tol;
+    }
+    function runs(line, closed, res) {
+      var ins = line.map(inside), n = line.length;
+      if (ins.every(Boolean)) { (closed ? res.closed : res.open).push(line); return; }
+      var start = 0;
+      if (closed) { while (ins[start]) start++; }            // begin just outside so no run wraps around the end
+      var cur = null;
+      for (var k = 0; k <= (closed ? n : n - 1); k++) {
+        var i = (start + k) % n;
+        if (ins[i]) { if (!cur) cur = []; cur.push(line[i]); }
+        else if (cur) { if (cur.length > 1) res.open.push(cur); cur = null; }
+      }
+      if (cur && cur.length > 1) res.open.push(cur);
+    }
+    var res = { closed: [], open: [], shade: out.shade };
+    out.closed.forEach(function (l) { runs(l, true, res); });
+    out.open.forEach(function (l) { runs(l, false, res); });
+    return res;
+  }
+
   /* ---------- page 1: the template ---------- */
 
   function displayUrl(url) { return String(url).replace(/^https?:\/\//, '').replace(/\/$/, ''); }
@@ -195,11 +228,13 @@
 
   function templatePage(analysis, info, o) {
     var n = analysis.doc.arms, items = [], out = outlines(analysis), rays = foldRays(n), al = Math.PI / n, a0 = G.leftEdgeAngle(n);
+    if (o.oneWedge) out = clipToWedge(out, a0, al);
 
     header(items, 'fold-and-cut template', info, o);
     items.push(text(36, 58, info.arms + ' arms · ' + info.layers + ' layers · ' + info.wedgeDeg + '° wedge', 10, { fill: MUTED }));
     items.push(text(36, 72, 'Difficulty ' + info.score + '/10 (' + info.label + ') · Best tool: ' + info.toolName, 10, { fill: MUTED }));
-    items.push(text(36, 88, '1  Cut out the circle.   2  Fold on the dashed lines, in number order.   3  Cut on the black lines.   4  Unfold.', 9, { fill: INK }));
+    items.push(text(36, 88, '1  Cut out the circle.   2  Fold on the dashed lines, in number order.   3  Cut on the black lines' +
+      (o.oneWedge ? ' in the blue wedge' : '') + '.   4  Unfold.', 9, { fill: INK }));
 
     items.push({ t: 'path', d: sectorOps(CX, CY, 270, a0, a0 + al), fill: TINT });                 // the wedge that ends up on top
     if (o.shade && out.shade.length) {
@@ -305,14 +340,15 @@
   /* ---------- public API ---------- */
 
   /**
-   * analysis: the result of analyze(doc). opts: { guide (default true), shade (true), name (true),
+   * analysis: the result of analyze(doc). opts: { guide (default true), shade (true), name (true), oneWedge (false:
+   * cut lines on the blue wedge only),
    * studentName (printed big on every page in place of the blank name line), siteUrl, appName }.
    * Returns { pages: [...], info }.
    */
   function layout(analysis, opts) {
     opts = opts || {};
     var o = {
-      guide: opts.guide !== false, shade: opts.shade !== false, name: opts.name !== false,
+      guide: opts.guide !== false, shade: opts.shade !== false, name: opts.name !== false, oneWedge: !!opts.oneWedge,
       studentName: cleanName(opts.studentName),
       siteUrl: opts.siteUrl || CFG.siteUrl, appName: opts.appName || CFG.appName
     };

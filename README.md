@@ -21,8 +21,13 @@ That address is also what the printed QR code will point to. If the address chan
 `siteUrl` in `js/config.js`.
 
 **Tip jar.** Set `tipUrl` in `js/config.js` to your Ko-fi page (for example `'https://ko-fi.com/yourname'`).
-A "Support Flake Lab" link then appears in the **More** menu and a short tip line in the Print dialog. Leave it
+A tip button then appears in **More > Support** and a short tip line in the Print dialog. Leave it
 empty to hide both. Kid mode never shows a tip link, and printed sheets never carry one.
+
+**Feedback.** **More > Support** also has a feedback form (Idea, Problem or Request). The site has no server, so the
+message goes out through the sender: set `feedbackEmail` in `js/config.js` to open it in their email app, or
+`feedbackUrl` to a form (it is set to the Google Form). A GitHub "new issue" address gets the message filled in;
+any other https address (like the Google Form) shows a single **Open the feedback form** button. Leave both empty to hide it.
 
 **Before you push a change to `css/` or `js/`, run `node tools/stamp.js`.** It adds a version tag to every
 script and stylesheet (`?v=...` in `index.html`, `VERSION` in `sw.js`). GitHub Pages lets browsers reuse files
@@ -39,6 +44,10 @@ checks every file with the server first, so it never serves a stale copy. If you
   Ctrl/Cmd + scroll to zoom, two fingers, scroll, Space + drag or the middle mouse button to move around, and
   the **+**, **-** and **0** keys. Zoom only changes the view, never the design.
 - First visit shows a short **welcome** (three steps). **More**, then **How it works** shows it again.
+- The **More** menu: **How it works**, **Shortcuts** (a list of keys and gestures), **Modes** (full app, kid mode,
+  math mode) and **Support** (tip jar and feedback). If the top bar wraps and More ends up near an edge, the menu
+  slides back onto the screen.
+- **Clear** (top bar, between Surprise me and More) asks "Clear the wedge?" first, and Undo brings it back.
 - The **arms and mode** button at the top left (for example "6 arms · Cut mode") opens the setup.
   Pick **4 arms** (45 degree wedge, 8 layers, easiest to cut) or **6 arms** (30 degree wedge, 12 layers).
 - Click a shape in the library to drop it on the wedge. Drag it, drag a square handle to resize,
@@ -67,16 +76,19 @@ checks every file with the server first, so it never serves a stale copy. If you
 - **Print template** (top bar, or Ctrl+P). A preview shows US Letter pages: the 7.5 inch paper disc with numbered fold
   lines (1, then 2, then 3), the cut lines drawn from the same raster the checks use, gray shading for paper that gets
   cut away, a 1 inch scale bar, the difficulty and best tool, and a QR code that points at `siteUrl` in `js/config.js`.
-  Options: a second page with a step by step fold guide and cutting tips, the shading, and a Name line. **Print** uses
+  Options: a second page with a step by step fold guide and cutting tips, the shading, **cut lines on the blue wedge
+  only** (the wedge you actually cut; the rest of the circle keeps its shading), and a Name line. **Print** uses
   the browser's print window (choose Actual size or 100%, not Fit to page); **Download PDF** saves a real vector PDF
   with selectable text. A warning appears if the design has loose pieces or details too fine for the chosen tool, and
   an empty design is not printed. The PDF and QR code are written by small modules in this folder, no libraries.
 - Every shape is either **Cut** (paper is removed) or **Keep** (paper stays, even over cuts).
   Whatever is painted last wins, so Keep on top of Cut makes a bridge or an island of paper.
-- **Protect center** (in the **More** menu) keeps a small solid hub so the arms do not fall apart at the middle.
+- **Protect center** (a toggle on the bar under the wedge, with its size slider beside it while it's on) keeps a small
+  solid hub so the arms do not fall apart at the middle.
 - Keys: Ctrl+A selects all, Ctrl+G groups, Ctrl+Shift+G ungroups, Esc deselects, arrows nudge (Shift for bigger steps), K toggles cut/keep, F flips, `[` and `]` change
   stacking, Ctrl+D duplicates, Delete removes, Ctrl+Z / Ctrl+Shift+Z undo and redo.
-- **Align** (button in the selection bar): **Center** moves the shape onto the middle line and sets rotation to 0.
+- **Align** (button in the selection bar) stays open until you tap it again, so you can align one shape after
+  another. **Center** moves the shape onto the middle line and sets rotation to 0.
   **Left edge** and **Right edge** swing the shape to the fold line and rotate it to that edge's angle
   (30 degrees for 6 arms, 22.5 for 4). Choose **On the fold** to center it on the fold line (the mirrored
   copy completes a symmetric shape) or **Inside** to keep it in the wedge with its side touching the fold.
@@ -100,8 +112,8 @@ write on.
 
 Add `?kids` to the address (for example `index.html?kids`) for a first-grade version on tablets.
 It locks the design to 4 arms, Cut mode and kid scissors, and hides the advanced controls (Build mode,
-6 arms, Geometry mode, Photo/Presets, Reset, align and hub bars, grouping and layer order, Cut/Keep, the
-layers list), adds a **Start over** button (one simple "Start over?" question first; Undo still brings it back),
+6 arms, math tools, Photo/Presets, the More menu, Align, Protect center, grouping and layer order, Cut/Keep, the
+layers list), calls Clear **Start over** (one simple "Start over?" question first; Undo still brings it back),
 starts with a traditional 4-arm snowflake whose shapes all reach an edge (no grown-up needed), and swaps the complexity and cut-check cards for one plain status line with a **Fix it** button. Shape tiles and buttons are bigger, shapes cannot shrink below about 11 mm, and kid scissors
 flag anything under about 6 mm. The last step is **Save my PDF** (there are no print options): it adds
 bridges first, warns in big text when a hole sits in the middle and needs a grown-up to poke it through,
@@ -110,9 +122,11 @@ big on every page, stored in the PDF's author and title, and used for the file n
 (`flake-lab-maya-lee-snowflake.pdf`). Kid mode saves its design separately (`flakelab.v1.kids`),
 so it never overwrites a design made in the full app. Leave off `?kids` (or use `?kids=0`) for the full app.
 
-## Geometry mode (phase 5)
+## Math mode (phase 5)
 
-The **Geometry mode** button in the top bar opens a dialog that works on whatever is on your wedge right now.
+Add `?math` to the address (or pick it in **More > Modes**) for math class. It is the full app plus an
+**Explore the math** button in the top bar (the plain full app leaves it out), and its printed QR codes lead back to
+`?math`. It shares its saved design with the full app. The button opens a dialog that works on whatever is on your wedge right now.
 The numbers for the snowflake (arms, layers, wedge angle, mirror lines, smallest turn, symmetry group) sit under the picture.
 
 - **Unfold**: Play, Next, Back or the slider open the wedge one sector at a time. Each new sector swings over the fold line it

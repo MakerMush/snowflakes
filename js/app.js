@@ -5,7 +5,9 @@
   var $ = function (id) { return document.getElementById(id); };
   var KIDS = !!SF.config.kids;                          // kid mode: 4 arms, Cut mode, kid scissors, simplified UI
   var KEY = SF.config.storageKey + (KIDS ? '.kids' : ''), TOOL_KEY = SF.config.storageKey + '.tool';
+  var MATH = !!SF.config.math;                          // math mode: the full app plus the geometry lab up front
   if (KIDS) document.body.classList.add('kids');
+  if (MATH) document.body.classList.add('math');
 
   /* ---------- load / save ---------- */
 
@@ -149,38 +151,114 @@
   /* ---------- popovers (More menu, Align) ---------- */
 
   var popClosers = [];
-  function closePops() { popClosers.forEach(function (f) { f(false); }); }
-  function popover(btnId, popId) {
-    var btn = $(btnId), pop = $(popId);
-    function set(open) { pop.hidden = !open; btn.setAttribute('aria-expanded', String(open)); btn.classList.toggle('on', open); }
-    btn.addEventListener('click', function () { var open = pop.hidden; closePops(); set(open); });
-    popClosers.push(set);
+  function closePops(except) { popClosers.forEach(function (p) { if (p.set !== except && !p.sticky) p.set(false); }); }
+  /* keep an open popover on screen: when the top bar wraps (iPad landscape), More can sit at the far left */
+  function keepOnScreen(pop) {
+    pop.style.transform = '';
+    var r = pop.getBoundingClientRect(), vw = document.documentElement.clientWidth, dx = 0;
+    if (r.right > vw - 8) dx = vw - 8 - r.right;
+    if (r.left + dx < 8) dx = 8 - r.left;
+    if (dx) pop.style.transform = 'translateX(' + Math.round(dx) + 'px)';
+  }
+  function popover(btnId, popId, opts) {
+    var btn = $(btnId), pop = $(popId), entry = { sticky: !!(opts && opts.sticky) };
+    function set(open) {
+      pop.hidden = !open; btn.setAttribute('aria-expanded', String(open)); btn.classList.toggle('on', open);
+      if (open) keepOnScreen(pop);
+      if (opts && opts.onToggle) opts.onToggle(open);
+    }
+    entry.set = set;
+    btn.addEventListener('click', function () { var open = pop.hidden; closePops(set); set(open); });
+    popClosers.push(entry);
     return set;
   }
-  var setMore = popover('btnMore', 'moreMenu'), setAlign = popover('btnAlign', 'alignMenu'), setSetup = popover('btnSetup', 'setupMenu');
+  /* Align stays open until you tap Align again, so you can line up shape after shape */
+  var alignWanted = false;
+  var setMore = popover('btnMore', 'moreMenu'), setSetup = popover('btnSetup', 'setupMenu');
+  var setAlign = popover('btnAlign', 'alignMenu', { sticky: true, onToggle: function (open) { if (store.selectedIds.length) alignWanted = open; } });
   document.addEventListener('pointerdown', function (e) { if (!(e.target.closest && e.target.closest('.pop-wrap'))) closePops(); });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePops(); });
-  $('kidLink').addEventListener('click', function () { setMore(false); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    closePops(); if (alignWanted) { alignWanted = false; setAlign(false); }
+  });
+  root.addEventListener('resize', function () { ['moreMenu', 'setupMenu', 'alignMenu'].forEach(function (id) { if (!$(id).hidden) keepOnScreen($(id)); }); });
+
+  /* More > Modes: full, kid and math mode each have their own address */
+  var MODE = KIDS ? 'kids' : MATH ? 'math' : 'full';
+  document.querySelectorAll('.mode-item').forEach(function (a) {
+    var on = a.getAttribute('data-mode') === MODE;
+    a.classList.toggle('on', on);
+    if (on) a.setAttribute('aria-current', 'page');
+  });
+  $('btnModes').addEventListener('click', function () {
+    var open = $('modeList').hidden;
+    $('modeList').hidden = !open; this.setAttribute('aria-expanded', String(open));
+    keepOnScreen($('moreMenu'));
+  });
+
+  /* small dialogs: Shortcuts and Support */
+  function openDlg(id) { var d = $(id); if (d.showModal) { if (!d.open) d.showModal(); } else d.setAttribute('open', ''); }
+  function closeDlg(d) { if (d.close) d.close(); else d.removeAttribute('open'); }
+  document.querySelectorAll('[data-close]').forEach(function (b) { b.addEventListener('click', function () { closeDlg(b.closest('dialog')); }); });
+  $('btnKeys').addEventListener('click', function () { setMore(false); openDlg('keysDlg'); });
+  $('btnSupport').addEventListener('click', function () { setMore(false); openDlg('supportDlg'); });
+
+  /* feedback: no server, so the message goes out through the sender's own email or a form (config.js) */
+  var FB_EMAIL = /^[^\s@<>"]+@[^\s@<>"]+\.[a-z]{2,}$/i.test(SF.config.feedbackEmail || '') ? SF.config.feedbackEmail : '';
+  var FB_URL = /^https:\/\/[^\s"'<>]+$/.test(SF.config.feedbackUrl || '') ? SF.config.feedbackUrl : '';
+  var fbKind = 'Idea';
+  $('feedbackSec').hidden = !(FB_EMAIL || FB_URL);
+  var FB_GITHUB = /github\.com\/.+\/issues\/new/.test(FB_URL), FB_FORM = !FB_EMAIL && !FB_GITHUB;
+  $('fbHow').textContent = FB_EMAIL ? 'Opens your email app with your message ready to send.'
+    : FB_GITHUB ? 'Opens GitHub with your message filled in (a free GitHub account is needed to post).'
+    : 'A short form, about 2 minutes. No sign-in needed. Opens in a new tab.';
+  if (FB_FORM) {                                   // the form asks its own questions, so just a button here
+    $('fbKindSeg').hidden = true; $('fbText').hidden = true;
+    $('fbSend').disabled = false; $('fbSend').classList.add('primary');
+    $('fbSend').textContent = 'Open the feedback form';
+  }
+  document.querySelectorAll('[data-fb]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      fbKind = b.getAttribute('data-fb');
+      document.querySelectorAll('[data-fb]').forEach(function (x) { x.setAttribute('aria-checked', String(x === b)); });
+    });
+  });
+  $('fbText').addEventListener('input', function () { $('fbSend').disabled = !this.value.trim(); });
+  $('fbSend').addEventListener('click', function () {
+    var msg = $('fbText').value.trim();
+    if (!msg && !FB_FORM) return;
+    var title = SF.config.appName + ' ' + fbKind.toLowerCase() + ': ' + msg.split('\n')[0].slice(0, 60);
+    var body = msg + '\n\n---\nKind: ' + fbKind + '\nMode: ' + MODE + '\nArms: ' + store.doc.arms;
+    var url = FB_EMAIL ? 'mailto:' + FB_EMAIL + '?subject=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(body)
+      : /github\.com\/.+\/issues\/new/.test(FB_URL) ? FB_URL + '?title=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(body)
+      : FB_URL;
+    var a = document.createElement('a');
+    a.href = url; a.target = '_blank'; a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+    $('fbText').value = ''; $('fbSend').disabled = !FB_FORM;
+    closeDlg($('supportDlg'));
+    toast(FB_FORM ? 'Thanks! The feedback form opened in a new tab.' : 'Thanks! Finish sending it in the window that opened.');
+  });
 
   /* tip jar: only when a Ko-fi (or other https) address is set in config.js, and never in kid mode */
   var TIP = /^https:\/\/[^\s"'<>]+$/.test(SF.config.tipUrl || '') && !KIDS ? SF.config.tipUrl : '';
   ['tipLink', 'printTipLink'].forEach(function (id) { if (TIP) $(id).href = TIP; });
-  $('tipLink').hidden = $('printTip').hidden = !TIP;
-  $('tipLink').addEventListener('click', function () { setMore(false); });
+  $('tipSec').hidden = $('printTip').hidden = !TIP;
 
-  $('btnReset').addEventListener('click', function () {
-    setMore(false);
-    if (!store.doc.objects.length) { toast('The wedge is already empty.'); return; }
-    store.clear();
-    toast('Template cleared.', 'Undo', function () { store.undo(); });
-  });
-
-  /* kid mode: Start over, with one simple question first (Undo still brings it back) */
-  function closeClear() { var d = $('clearDlg'); if (d.close) d.close(); else d.removeAttribute('open'); }
-  $('btnKidClear').addEventListener('click', function () {
-    if (!store.doc.objects.length) { toast('Your wedge is already empty.'); return; }
-    var d = $('clearDlg');
-    if (d.showModal) d.showModal(); else d.setAttribute('open', '');
+  /* Clear (Start over in kid mode): one simple question first, and Undo still brings it back */
+  function closeClear() { closeDlg($('clearDlg')); }
+  if (KIDS) {
+    $('btnClearLbl').textContent = 'Start over';
+    $('btnClear').title = 'Clear the whole snowflake';
+  } else {
+    $('clearTitle').textContent = 'Clear the wedge?';
+    $('clearMsg').textContent = 'This removes every shape. Undo brings them back.';
+    $('clearNo').textContent = 'Keep it';
+    $('clearYes').textContent = 'Clear';
+  }
+  $('btnClear').addEventListener('click', function () {
+    if (!store.doc.objects.length) { toast(KIDS ? 'Your wedge is already empty.' : 'The wedge is already empty.'); return; }
+    openDlg('clearDlg');
     $('clearNo').focus();                                    // the safe answer is the default
   });
   $('clearNo').addEventListener('click', closeClear);
@@ -188,7 +266,7 @@
     closeClear();
     store.clear();
     editor.resetZoom();
-    toast('All clear! Tap a shape to start again.', 'Undo', function () { store.undo(); });
+    toast(KIDS ? 'All clear! Tap a shape to start again.' : 'Wedge cleared.', 'Undo', function () { store.undo(); });
   });
 
   /* ---------- selection bar and align tools ---------- */
@@ -221,7 +299,7 @@
     });
   });
 
-  $('hubOn').addEventListener('change', function () { store.setHub(this.checked); });
+  $('btnHub').addEventListener('click', function () { store.setHub(!store.doc.hub); });
   $('hubR').addEventListener('input', function () { store.setHubR(+this.value); });
   $('showFolds').addEventListener('change', function () { renderPreview(); });
   $('showProblems').addEventListener('change', function () { applyOverlay(); });
@@ -277,12 +355,13 @@
     $('foldChip').textContent = info.wedgeDeg + '° · ' + info.order + ' layers';
     $('btnUndo').disabled = !store.canUndo();
     $('btnRedo').disabled = !store.canRedo();
-    $('hubOn').checked = doc.hub;
+    $('btnHub').setAttribute('aria-pressed', String(!!doc.hub));
+    $('btnHub').classList.toggle('on', !!doc.hub);
     $('hubR').value = doc.hubR;
     $('hubR').disabled = !doc.hub;
 
     ['btnFlip', 'btnDup', 'btnFront', 'btnBack', 'btnDel', 'roleCut', 'roleKeep', 'alignCenter', 'btnAlign'].forEach(function (id) { $(id).disabled = !o; });
-    if (!o) setAlign(false);
+    setAlign(!!o && alignWanted);                         // Align stays open from shape to shape
     ['alignLeft', 'alignRight'].forEach(function (id) { $(id).disabled = !o || multi; });
     $('btnGroup').disabled = !multi || oneGroup;
     $('btnUngroup').disabled = !grouped.length;

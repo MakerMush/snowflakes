@@ -172,3 +172,35 @@ test('optional name: a typed name replaces the blank name line on a regular 6-ar
   const blank = PR.layout(an, { studentName: '   ' }).pages[0].items;
   assert.ok(blank.some(it => it.t === 'text' && it.s === 'Name'), 'a blank name keeps the write-in line');
 });
+
+/* ---------- cut lines on the blue wedge only ---------- */
+
+test('one-wedge option: every cut line sits inside the blue wedge, and the full template has lines elsewhere', () => {
+  const ST2 = require('../js/state'), AN2 = require('../js/analyze'), PR2 = require('../js/print'), G2 = require('../js/geometry');
+  [4, 6].forEach(arms => {
+    const doc = ST2.starterDoc(); doc.arms = arms;
+    const an = AN2.analyze(doc);
+    const a0 = G2.leftEdgeAngle(arms), al = Math.PI / arms;
+    const cutPts = page => page.items.filter(it => it.t === 'path' && it.stroke === '#0a0e13' && it.lw === 1.3)
+      .flatMap(it => it.d.filter(op => op.length > 1).map(op => [op[1] - 306, op[2] - 400]))
+      .filter(([x, y]) => Math.hypot(x, y) <= 271);                     // the paper circle only (not the legend sample)
+    const inWedge = ([x, y]) => {
+      if (Math.hypot(x, y) < 3) return true;
+      let d = Math.atan2(y, x) - a0; d = ((d % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI); if (d > Math.PI) d -= 2 * Math.PI;
+      return d >= -0.03 && d <= al + 0.03;
+    };
+    const full = cutPts(PR2.layout(an).pages[0]), one = cutPts(PR2.layout(an, { oneWedge: true }).pages[0]);
+    assert.ok(full.some(p => !inWedge(p)), arms + ' arms: the full template draws lines on other wedges');
+    assert.ok(one.length > 0, arms + ' arms: the blue wedge still has its lines');
+    assert.ok(one.every(inWedge), arms + ' arms: no cut line outside the blue wedge');
+    assert.ok(PR2.layout(an, { oneWedge: true }).pages[0].items.some(it => it.t === 'text' && /black lines in the blue wedge/.test(it.s)));
+  });
+});
+
+test('math mode has its own address for the printed QR code', () => {
+  const CFG = require('../js/config');
+  assert.equal(CFG.mathUrl, CFG.siteUrl + '?math');
+  assert.equal(CFG.math, false);
+  assert.ok(CFG.feedbackEmail === '' || /@/.test(CFG.feedbackEmail));
+  assert.ok(CFG.feedbackUrl === '' || /^https:\/\//.test(CFG.feedbackUrl));
+});

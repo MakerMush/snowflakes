@@ -331,6 +331,57 @@ body[data-mode="build"] .sw-keep { background: #fff; border-color: var(--steel-7
 .pop-up .lab { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .14em; color: var(--steel-500); }
 .pop-up .seg { align-self: flex-start; }
 .btn.on, .icon-btn.on { background: var(--ice-100); border-color: var(--black); }
+
+/* More menu: How it works, Shortcuts, Modes, Support */
+.more-pop { width: 270px; }
+.pop-item .caret { width: 16px; height: 16px; margin-left: auto; color: var(--steel-500); transition: transform .15s; }
+.pop-item[aria-expanded="true"] .caret { transform: rotate(180deg); }
+.key-ic { display: inline-grid; place-items: center; font-size: 15px; line-height: 1; }
+.mode-list { display: flex; flex-direction: column; gap: 2px; margin: -2px 0 2px 30px; }
+.mode-list[hidden] { display: none; }
+.mode-item {
+  display: flex; flex-direction: column; gap: 1px; padding: 7px 10px; border-radius: 8px; border: 1.5px solid transparent;
+  color: var(--black); text-decoration: none;
+}
+.mode-item:hover { background: var(--ice-100); }
+.mode-item b { font-size: 13.5px; }
+.mode-item span { font-size: 12px; color: var(--steel-500); }
+.mode-item.on { border-color: var(--ice-300); background: var(--ice-50); }
+.mode-item.on b::after { content: '  \2713  current'; font-size: 11px; font-weight: 600; color: var(--ice-700); }
+
+/* math mode: the geometry lab is the point, so its button shows (it is hidden in the plain full app) */
+#btnGeo { display: none; }
+body.math #btnGeo { display: inline-flex; }
+.math-badge { display: none; }
+body.math .math-badge {
+  display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px;
+  background: #efe6fb; color: #5a2d91; font-size: 11px; font-weight: 700; text-transform: uppercase;
+}
+
+/* Protect center lives on the bottom bar, where you can see if it's on */
+.hub-tools { display: flex; align-items: center; gap: 10px; padding-left: 14px; border-left: 1.5px solid var(--steel-200); }
+.hub-btn { gap: 6px; }
+.hub-btn .ic { width: 18px; height: 18px; }
+.hub-btn[aria-pressed="false"] { color: var(--steel-500); }
+.hub-btn[aria-pressed="false"] + .hub-size { display: none; }
+.hub-size input { width: 80px; }
+body.kids .hub-tools { display: none; }
+
+/* small dialogs: Shortcuts and Support */
+.dlg-small { width: min(520px, calc(100vw - 24px)); }
+.keys-body, .support-body { flex-direction: column; }
+.keys-list { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0; font-size: 13.5px; }
+.keys-list dt { font: 600 12px var(--mono); padding: 2px 7px; border: 1.5px solid var(--steel-200); border-radius: 6px; background: var(--steel-100); justify-self: start; }
+.keys-list dd { margin: 0; color: var(--steel-700); }
+.support-sec { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.support-sec[hidden], .support-sec [hidden] { display: none; }
+.support-sec + .support-sec { padding-top: 14px; border-top: 1.5px solid var(--steel-200); }
+.support-sec h3 { margin: 0; font-size: 15px; }
+.support-sec textarea {
+  width: 100%; resize: vertical; min-height: 96px; padding: 10px 12px; font: 16px/1.4 var(--sans); color: var(--black);
+  border: 1.5px solid var(--steel-300); border-radius: var(--radius); background: var(--white);
+}
+.support-sec textarea:focus { border-color: var(--black); outline: none; }
 .btn[hidden] { display: none; }
 
 /* ---------- right panel ---------- */
@@ -477,6 +528,7 @@ body[data-mode="build"] .sw-keep { background: #fff; border-color: var(--steel-7
     position: fixed; inset: 10px; margin: 0; width: auto; height: auto; max-width: none; max-height: none;
   }
   .dlg-welcome:not(.dlg-confirm) { inset: 10px max(10px, calc(50vw - 380px)); bottom: auto; max-height: calc(100% - 20px); }
+  .dlg-small:not(.dlg-confirm) { inset: 10px max(10px, calc(50vw - 270px)); bottom: auto; max-height: calc(100% - 20px); }
 }
 /* iPad: while the keyboard is up, pin the dialog to the visible area above it */
 html.kb .dlg[open] {

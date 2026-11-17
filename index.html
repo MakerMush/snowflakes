@@ -8,7 +8,7 @@
 <meta name="description" content="Design a paper snowflake, preview it unfolded, then print a fold-and-cut template.">
 <meta name="theme-color" content="#0a0e13">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%230a0e13'/%3E%3Cg stroke='%23cde9f7' stroke-width='1.6' stroke-linecap='round' fill='none'%3E%3Cpath d='M12 4v16M5.1 8l13.8 8M5.1 16l13.8-8'/%3E%3C/g%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/styles.css?v=80be151522">
+<link rel="stylesheet" href="css/styles.css?v=469a7a5021">
 </head>
 <body data-tab="design">
 
@@ -48,6 +48,7 @@
       <span class="brand-tag">fold. cut. flake.</span>
     </div>
     <span class="kid-badge mono" title="Kid mode is on (?kids in the address). Remove it for the full app.">kid mode</span>
+    <span class="math-badge mono" title="Math mode is on (?math in the address). Remove it for the full app.">math mode</span>
   </div>
 
   <div class="fold-picker pop-wrap">
@@ -79,28 +80,23 @@
     <button type="button" class="btn" id="btnUndo" title="Undo (Ctrl+Z)"><svg class="ic"><use href="#i-undo"/></svg><span class="lbl">Undo</span></button>
     <button type="button" class="btn" id="btnRedo" title="Redo (Ctrl+Shift+Z)"><svg class="ic"><use href="#i-redo"/></svg><span class="lbl">Redo</span></button>
     <button type="button" class="btn" id="btnSurprise" title="Start from a random flake"><svg class="ic"><use href="#i-shuffle"/></svg><span class="lbl">Surprise me</span></button>
-    <button type="button" class="btn kid-only" id="btnKidClear" title="Clear the whole snowflake"><svg class="ic"><use href="#i-reset"/></svg><span class="lbl">Start over</span></button>
+    <button type="button" class="btn" id="btnClear" title="Clear every shape off the wedge (asks first)"><svg class="ic"><use href="#i-reset"/></svg><span class="lbl" id="btnClearLbl">Clear</span></button>
     <div class="pop-wrap more-wrap">
-      <button type="button" class="btn" id="btnMore" title="More options" aria-haspopup="true" aria-expanded="false" aria-controls="moreMenu"><svg class="ic"><use href="#i-more"/></svg><span class="lbl">More</span></button>
-      <div class="pop pop-down" id="moreMenu" hidden>
+      <button type="button" class="btn" id="btnMore" title="More" aria-haspopup="true" aria-expanded="false" aria-controls="moreMenu"><svg class="ic"><use href="#i-more"/></svg><span class="lbl">More</span></button>
+      <div class="pop pop-down more-pop" id="moreMenu" hidden>
         <button type="button" class="pop-item" id="btnHelp"><svg class="ic" aria-hidden="true"><use href="#i-logo"/></svg><span>How it works</span></button>
-        <button type="button" class="pop-item" id="btnReset" title="Clear the template"><svg class="ic"><use href="#i-reset"/></svg><span>Clear the wedge</span></button>
-        <div class="pop-sep" role="separator"></div>
-        <div class="pop-group">
-          <label class="check"><input type="checkbox" id="hubOn" checked> Protect center</label>
-          <label class="range" for="hubR"><span class="mono">hub size</span>
-            <input type="range" id="hubR" min="0" max="20" step="0.5" value="7"></label>
-          <p class="pop-note">Keeps a small circle of paper in the middle so the flake holds together.</p>
+        <button type="button" class="pop-item" id="btnKeys"><span class="ic key-ic" aria-hidden="true">&#8984;</span><span>Shortcuts</span></button>
+        <button type="button" class="pop-item" id="btnModes" aria-expanded="false" aria-controls="modeList"><svg class="ic" aria-hidden="true"><use href="#i-geo"/></svg><span>Modes</span><svg class="ic caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="mode-list" id="modeList" hidden>
+          <a class="mode-item" data-mode="full" href="./"><b>Full app</b><span>Every tool, for older kids and grown-ups</span></a>
+          <a class="mode-item" data-mode="kids" href="?kids"><b>Kid mode</b><span>Big buttons, fewer choices, ages 5 to 8</span></a>
+          <a class="mode-item" data-mode="math" href="?math"><b>Math mode</b><span>Unfold, symmetry and printable worksheets</span></a>
         </div>
-        <div class="pop-sep" role="separator"></div>
-        <a class="pop-item" id="tipLink" target="_blank" rel="noopener" hidden><span class="ic tip-ic" aria-hidden="true">&#9749;</span><span>Support Flake Lab <small>(Ko-fi)</small></span></a>
-        <a class="pop-item" id="kidLink" href="?kids" target="_blank" rel="noopener"><svg class="ic"><use href="#i-logo"/></svg><span>Open kid mode <small>(new tab)</small></span></a>
-        <div class="pop-sep" role="separator"></div>
-        <p class="pop-keys mono"><b>Shortcuts</b> drag · box-select empty paper · shift-click adds · Ctrl+G groups · arrows nudge · K cut/keep · F flip · C center · [ ] order · Del · + / - / 0 zoom · Ctrl+scroll zooms · Space+drag pans</p>
+        <button type="button" class="pop-item" id="btnSupport"><span class="ic tip-ic" aria-hidden="true">&#9749;</span><span>Support <small>tips &amp; feedback</small></span></button>
       </div>
     </div>
     <span class="divider" aria-hidden="true"></span>
-    <button type="button" class="btn" id="btnGeo" title="Geometry mode: watch the unfold, explore the symmetry, download a worksheet"><svg class="ic"><use href="#i-geo"/></svg><span class="lbl">Geometry mode</span></button>
+    <button type="button" class="btn" id="btnGeo" title="Geometry mode: watch the unfold, explore the symmetry, download a worksheet"><svg class="ic"><use href="#i-geo"/></svg><span class="lbl">Explore the math</span></button>
     <button type="button" class="btn primary" id="btnPrint" title="Print or save the fold-and-cut template (US Letter)"><svg class="ic"><use href="#i-print"/></svg><span class="lbl">Print template</span></button>
   </div>
 </header>
@@ -206,6 +202,11 @@
         <button type="button" class="icon-btn" id="btnBack" title="Send back ([)" aria-label="Send back"><svg class="ic"><use href="#i-back"/></svg></button>
         <button type="button" class="icon-btn danger" id="btnDel" title="Delete (Delete key)" aria-label="Delete" data-kid="Delete"><svg class="ic"><use href="#i-trash"/></svg></button>
       </div>
+      <div class="hub-tools">
+        <button type="button" class="btn btn-sm hub-btn" id="btnHub" aria-pressed="true" title="Keep a small circle of paper in the middle so the snowflake holds together"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="8.5" stroke-dasharray="2.6 2.4"/><circle cx="12" cy="12" r="3.6" fill="currentColor" fill-opacity=".25"/></g></svg><span>Protect center</span></button>
+        <label class="range hub-size" for="hubR" title="Size of the protected center"><span class="mono">size</span>
+          <input type="range" id="hubR" min="0" max="20" step="0.5" value="7"></label>
+      </div>
     </div>
 
   </section>
@@ -278,6 +279,7 @@
       <p class="dlg-note"><b>US Letter, portrait.</b> In the print window choose <b>Actual size</b> or <b>100%</b> (not "Fit to page"), so the circle prints 7.5 inches across. The scale bar should measure 1 inch.</p>
       <label class="check"><input type="checkbox" id="optGuide" checked> Fold guide page</label>
       <label class="check"><input type="checkbox" id="optShade" checked> Shade paper that gets cut away</label>
+      <label class="check"><input type="checkbox" id="optOneWedge"> Cut lines on the blue wedge only</label>
       <label class="check"><input type="checkbox" id="optName" checked> Name line</label>
       <div class="name-field" id="nameField">
         <label for="printName" id="printNameLabel">Name to print (optional)</label>
@@ -363,7 +365,7 @@
  <dialog class="dlg dlg-confirm" id="clearDlg" aria-labelledby="clearTitle">
   <div class="dlg-body confirm-body">
     <h2 id="clearTitle">Start over?</h2>
-    <p>This clears your whole snowflake.</p>
+    <p id="clearMsg">This clears your whole snowflake.</p>
   </div>
   <div class="dlg-foot">
     <button type="button" class="btn" id="clearNo">No, keep it</button>
@@ -382,9 +384,60 @@
       <li><b>Watch it unfold</b><span>The preview shows the whole snowflake, with every arm a mirror of the next.</span></li>
       <li><b>Print, fold, cut</b><span>Print the template, fold on the dashed lines, cut on the black lines, and unfold.</span></li>
     </ol>
-    <p class="dlg-note welcome-tip"><b>Teaching young kids?</b> Kid mode has bigger buttons and fewer choices. Open it from <b>More</b>, or add <code>?kids</code> to the address.</p>
+    <p class="dlg-note welcome-tip"><b>Teaching?</b> Kid mode has bigger buttons and fewer choices, and math mode adds symmetry activities and worksheets. Switch in <b>More &rsaquo; Modes</b>, or add <code>?kids</code> or <code>?math</code> to the address.</p>
   </div>
   <div class="dlg-foot"><button type="button" class="btn primary" id="welcomeGo">Let's make one</button></div>
+ </dialog>
+ <dialog class="dlg dlg-small" id="keysDlg" aria-labelledby="keysTitle">
+  <div class="dlg-head">
+    <h2 id="keysTitle">Shortcuts</h2>
+    <button type="button" class="icon-btn" data-close aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></g></svg></button>
+  </div>
+  <div class="dlg-body keys-body">
+    <dl class="keys-list">
+      <dt>Drag</dt><dd>Move a shape. Drag empty paper to box-select.</dd>
+      <dt>Shift + click</dt><dd>Add a shape to the selection</dd>
+      <dt>Arrows</dt><dd>Nudge (Shift for bigger steps)</dd>
+      <dt>Ctrl/Cmd + Z</dt><dd>Undo (Shift for redo)</dd>
+      <dt>Ctrl/Cmd + D</dt><dd>Duplicate</dd>
+      <dt>Ctrl/Cmd + G</dt><dd>Group (Shift to ungroup)</dd>
+      <dt>Ctrl/Cmd + A</dt><dd>Select all</dd>
+      <dt>Delete</dt><dd>Delete the selection</dd>
+      <dt>K</dt><dd>Switch between cut and keep</dd>
+      <dt>F</dt><dd>Flip</dd>
+      <dt>C</dt><dd>Center on the middle line</dd>
+      <dt>[ and ]</dt><dd>Send back, bring forward</dd>
+      <dt>+ / - / 0</dt><dd>Zoom in, zoom out, reset zoom</dd>
+      <dt>Ctrl + scroll, pinch</dt><dd>Zoom</dd>
+      <dt>Space + drag, two fingers</dt><dd>Move around when zoomed in</dd>
+    </dl>
+  </div>
+ </dialog>
+
+ <dialog class="dlg dlg-small" id="supportDlg" aria-labelledby="supportTitle">
+  <div class="dlg-head">
+    <h2 id="supportTitle">Support Flake Lab</h2>
+    <button type="button" class="icon-btn" data-close aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></g></svg></button>
+  </div>
+  <div class="dlg-body support-body">
+    <section class="support-sec" id="tipSec">
+      <h3>Leave a tip</h3>
+      <p class="dlg-note">Flake Lab is free, with no ads and no accounts. If it helped you or your class, a tip keeps it going.</p>
+      <a class="btn primary" id="tipLink" target="_blank" rel="noopener">&#9749; Tip on Ko-fi</a>
+    </section>
+    <section class="support-sec" id="feedbackSec">
+      <h3>Send feedback</h3>
+      <p class="dlg-note">Found a problem, have an idea, or want a feature for your classroom? I read every response, and it decides what gets built next.</p>
+      <div class="seg seg-sm" id="fbKindSeg" role="radiogroup" aria-label="What kind of feedback">
+        <button type="button" role="radio" aria-checked="true" data-fb="Idea">Idea</button>
+        <button type="button" role="radio" aria-checked="false" data-fb="Problem">Problem</button>
+        <button type="button" role="radio" aria-checked="false" data-fb="Request">Request</button>
+      </div>
+      <textarea id="fbText" rows="4" maxlength="2000" placeholder="What would make Flake Lab better?" aria-label="Your feedback"></textarea>
+      <button type="button" class="btn" id="fbSend" disabled>Send feedback</button>
+      <p class="dlg-note mono" id="fbHow"></p>
+    </section>
+  </div>
  </dialog>
  <div id="printRoot" aria-hidden="true"></div>
 
@@ -393,23 +446,23 @@
   <button type="button" id="toastAction" class="toast-action"></button>
 </div>
 
-<script src="js/config.js?v=80be151522"></script>
-<script src="js/geometry.js?v=80be151522"></script>
-<script src="js/shapes.js?v=80be151522"></script>
-<script src="js/sampler.js?v=80be151522"></script>
-<script src="js/analyze.js?v=80be151522"></script>
-<script src="js/state.js?v=80be151522"></script>
-<script src="js/preview.js?v=80be151522"></script>
-<script src="js/presets.js?v=80be151522"></script>
-<script src="js/trace.js?v=80be151522"></script>
-<script src="js/qr.js?v=80be151522"></script>
-<script src="js/pdf.js?v=80be151522"></script>
-<script src="js/print.js?v=80be151522"></script>
-<script src="js/worksheet.js?v=80be151522"></script>
-<script src="js/photo.js?v=80be151522"></script>
-<script src="js/printui.js?v=80be151522"></script>
-<script src="js/geolab.js?v=80be151522"></script>
-<script src="js/editor.js?v=80be151522"></script>
-<script src="js/app.js?v=80be151522"></script>
+<script src="js/config.js?v=469a7a5021"></script>
+<script src="js/geometry.js?v=469a7a5021"></script>
+<script src="js/shapes.js?v=469a7a5021"></script>
+<script src="js/sampler.js?v=469a7a5021"></script>
+<script src="js/analyze.js?v=469a7a5021"></script>
+<script src="js/state.js?v=469a7a5021"></script>
+<script src="js/preview.js?v=469a7a5021"></script>
+<script src="js/presets.js?v=469a7a5021"></script>
+<script src="js/trace.js?v=469a7a5021"></script>
+<script src="js/qr.js?v=469a7a5021"></script>
+<script src="js/pdf.js?v=469a7a5021"></script>
+<script src="js/print.js?v=469a7a5021"></script>
+<script src="js/worksheet.js?v=469a7a5021"></script>
+<script src="js/photo.js?v=469a7a5021"></script>
+<script src="js/printui.js?v=469a7a5021"></script>
+<script src="js/geolab.js?v=469a7a5021"></script>
+<script src="js/editor.js?v=469a7a5021"></script>
+<script src="js/app.js?v=469a7a5021"></script>
 </body>
 </html>

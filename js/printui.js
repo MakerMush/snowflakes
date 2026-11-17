@@ -16,7 +16,8 @@
     function studentName() { return ctx.kids || $('optName').checked ? PR.cleanName($('printName').value) : ''; }
     function opts() {
       return { guide: $('optGuide').checked, shade: $('optShade').checked, name: $('optName').checked, studentName: studentName(),
-        siteUrl: ctx.kids ? SF.config.kidsUrl : SF.config.siteUrl };      // the QR code leads back to the same mode
+        oneWedge: $('optOneWedge').checked,
+        siteUrl: ctx.kids ? SF.config.kidsUrl : SF.config.math ? SF.config.mathUrl : SF.config.siteUrl };   // the QR code leads back to the same mode
     }
 
     function refresh() {
@@ -101,7 +102,7 @@
     $('printCancel').addEventListener('click', close);
     $('printPdf').addEventListener('click', download);
     $('printGo').addEventListener('click', print);
-    ['optGuide', 'optShade', 'optName'].forEach(function (id) { $(id).addEventListener('change', refresh); });
+    ['optGuide', 'optShade', 'optName', 'optOneWedge'].forEach(function (id) { $(id).addEventListener('change', refresh); });
     $('optName').addEventListener('change', function () { $('nameField').hidden = !this.checked; });
 
     var nameTimer = 0;                               // the preview follows the typed name
