@@ -208,7 +208,8 @@
   }
 
   /** A small picture of the finished, unfolded snowflake: paper tinted, cutouts white. */
-  var PAPER = '#cfe6f5';
+  // dark enough to survive pale or grayscale printers (about 50% gray), light enough to write on in pencil
+  var PAPER = '#6b93b1';
   function flakePreview(items, out, cx, cy, r) {
     var k = r / G.R;
     items.push({ t: 'path', d: circleOps(cx, cy, r), fill: PAPER });
@@ -440,6 +441,7 @@
     layout: layout, toSVG: toSVG, toPDF: toPDF, fileName: fileName, cleanName: cleanName,
     outlines: outlines, splitRim: splitRim, foldRays: foldRays, foldStepsInfo: foldStepsInfo,
     PAGE_W: PAGE_W, PAGE_H: PAGE_H, DISC_CENTER: [CX, CY], PT_PER_UNIT: K,
+    PAPER: PAPER,
     draw: { circleOps: circleOps, arcOps: arcOps, sectorOps: sectorOps, polyOps: polyOps, line: line, text: text, wrap: wrap,
       qrItems: qrItems, displayUrl: displayUrl, colors: { BLUE: BLUE, INK: INK, LINE: LINE, SHADE: SHADE, TINT: TINT, MUTED: MUTED, FAINT: FAINT } }
   };

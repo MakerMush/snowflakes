@@ -20,7 +20,7 @@
   'use strict';
 
   var D = PR.draw, C = D.colors, text = D.text, line = D.line, wrap = D.wrap;
-  var KEY = '#1a6fb0', PAPER = '#c9deed';
+  var KEY = '#1a6fb0', PAPER = PR.PAPER;          // the same printable paper color as the template preview
   var LEFT = 36, WIDTH = 540, LEAD = 13.5;
 
   function num(v) { return String(Math.round(v * 100) / 100); }
@@ -94,7 +94,7 @@
     if (o.key) {
       f.lines.forEach(function (l) {
         var dx = Math.cos(l.angle), dy = Math.sin(l.angle);
-        items.push(line(cx - (r + 10) * dx, cy - (r + 10) * dy, cx + (r + 10) * dx, cy + (r + 10) * dy, { stroke: KEY, lw: 1, dash: [5, 3] }));
+        items.push(line(cx - (r + 10) * dx, cy - (r + 10) * dy, cx + (r + 10) * dx, cy + (r + 10) * dy, { stroke: C.INK, lw: 1.2, dash: [5, 3] }));
         items.push(text(cx + (r + 18) * dx, cy + (r + 18) * dy + 3, String(l.label), 9, { font: 'F2', fill: KEY, anchor: 'middle' }));
       });
     }
