@@ -42,7 +42,11 @@ checks every file with the server first, so it never serves a stale copy. If you
 
 - **Zoom and pan** the wedge: the **- / + / Reset zoom** buttons at the bottom right of the canvas, pinch or
   Ctrl/Cmd + scroll to zoom, two fingers, scroll, Space + drag or the middle mouse button to move around, and
-  the **+**, **-** and **0** keys. Zoom only changes the view, never the design.
+  the **+**, **-** and **0** keys. Zoom goes from 35% (zooming out with the buttons centers on everything, so a
+  shape stretched far past the wedge comes back into view) to 600%. Zoom only changes the view, never the design.
+- **Drag a shape** from the library straight onto the wedge, or tap it to drop it at the next free spot. On a
+  tablet, drag sideways out of the list (dragging up and down scrolls it).
+- Resize and rotate handles have an invisible, finger-sized grab area (about 44 px on a tablet).
 - First visit shows a short **welcome** (three steps). **More**, then **How it works** shows it again.
 - The **More** menu: **How it works**, **Shortcuts** (a list of keys and gestures), **Modes** (full app, kid mode,
   math mode) and **Support** (tip jar and feedback). If the top bar wraps and More ends up near an edge, the menu
@@ -115,7 +119,11 @@ Add `?kids` to the address (for example `index.html?kids`) for a first-grade ver
 It locks the design to 4 arms, Cut mode and kid scissors, and hides the advanced controls (Build mode,
 6 arms, math tools, Photo/Presets, the More menu, Align, Protect center, grouping and layer order, Cut/Keep, the
 layers list), calls Clear **Start over** (one simple "Start over?" question first; Undo still brings it back),
-starts with a traditional 4-arm snowflake whose shapes all reach an edge (no grown-up needed), and swaps the complexity and cut-check cards for one plain status line with a **Fix it** button. Shape tiles and buttons are bigger, shapes cannot shrink below about 11 mm, and kid scissors
+starts with a traditional 4-arm snowflake whose shapes all reach an edge (no grown-up needed), and swaps the complexity and cut-check cards for one plain status line with a **Fix it** button. It offers two ready-made snowflakes to start from (**Blocky star** and **Pinwheel**, also in the full app's
+Presets) and only the rounded, chunky shapes (circle, dome, square, pentagon, hexagon, heart, capsule): pointy ones
+like stars and the sparkle have tips too narrow for kid scissors, so they came up red the moment they landed. New
+shapes drop centered at roomy spots away from the narrow middle, so each one starts clean (a test checks every shape
+at every spot). Shape tiles and buttons are bigger, shapes cannot shrink below about 11 mm, and kid scissors
 flag anything under about 6 mm. The last step is **Save my PDF** (there are no print options): it adds
 bridges first, warns in big text when a hole sits in the middle and needs a grown-up to poke it through,
 and asks the student to type their name. Saving stays off until a name is entered; the name is printed

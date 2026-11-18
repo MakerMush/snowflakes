@@ -6,7 +6,7 @@
  * Keep FILES in step with index.html (a test checks this). VERSION is written by tools/stamp.js.
  */
 'use strict';
-var VERSION = 'b1673c5df4';
+var VERSION = 'd575f9c9f1';
 var CACHE = 'flakelab';
 var FILES = [
   './',

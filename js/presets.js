@@ -2,8 +2,9 @@
  * presets.js - ready-made starting layouts, modeled on classic fold-and-cut paper snowflakes.
  *
  * Each preset is a normal design (the same object list the editor uses), so after loading one
- * you can drag, resize, delete or add anything. All of them are 6-arm Build mode designs: the arm runs along the
- * left fold line of the wedge and the gap between neighbouring arms is the right fold line.
+ * you can drag, resize, delete or add anything. Most are 6-arm Build mode designs: the arm runs along the
+ * left fold line of the wedge and the gap between neighbouring arms is the right fold line. The `kids` ones are
+ * simple 4-arm Cut mode flakes (first made by a class of seven year olds) that kid mode offers too.
  * They are built only from the shape library and were tuned so the cut checks come back clean
  * for kid scissors (a test keeps it that way).
  */
@@ -23,6 +24,30 @@
    * notches back out. Positions are in wedge units (see geometry.js); the arm runs along the left fold line.
    */
   var list = [
+    {
+      id: 'blocky', name: 'Blocky star', kids: true,
+      blurb: 'Four chunky arms with notched edges. A few big straight cuts: easy for kid scissors.',
+      mode: 'cut', arms: 4, hub: true, hubR: 7,
+      objects: [
+      { shapeId: 'square', x: 19.71, y: -70.79, sx: 43.9, sy: 73.9, rot: 354.37, role: 'cut', label: 'Big block' },
+      { shapeId: 'square', x: -8.98, y: -91.58, sx: 73.9, sy: 26.1, rot: 32.3, role: 'cut', label: 'Corner block' },
+      { shapeId: 'square', x: -3.95, y: -88.1, sx: 12, sy: 45.8, rot: 42, role: 'cut', label: 'Slanted bar' },
+      { shapeId: 'square', x: 16.48, y: -54.11, sx: 45.8, sy: 12, rot: 352.65, role: 'cut', label: 'Side bar' },
+      { shapeId: 'circle', x: 10.78, y: -18.38, sx: 16.4, sy: 16.4, rot: 0, role: 'cut', label: 'Fold notch' }
+      ]
+    },
+    {
+      id: 'pinwheel', name: 'Pinwheel', kids: true,
+      blurb: 'Hooked arms that spin around the center, with little chevrons in between. All straight cuts.',
+      mode: 'cut', arms: 4, hub: true, hubR: 7,
+      objects: [
+      { shapeId: 'square', x: 14.95, y: -93.26, sx: 61.4, sy: 61.4, rot: 346.2, role: 'cut', label: 'Big block' },
+      { shapeId: 'square', x: -3.3, y: -109.7, sx: 52.6, sy: 35.1, rot: 341, role: 'cut', label: 'Top block' },
+      { shapeId: 'square', x: -7.54, y: -84.04, sx: 27.9, sy: 12, rot: 341, role: 'keep', label: 'Hook' },
+      { shapeId: 'square', x: 11.39, y: -34.61, sx: 28.1, sy: 12, rot: 338.4, role: 'cut', label: 'Chevron' },
+      { shapeId: 'square', x: 17.46, y: -30.35, sx: 12, sy: 24.4, rot: 339, role: 'cut', label: 'Chevron' }
+      ]
+    },
     {
       id: 'medallion', name: 'Photo medallion', needsImage: true,
       blurb: 'Mostly built: a web frame with open windows. Add a picture in the Photo tab and it repeats in every window.',
@@ -107,5 +132,8 @@
     });
   }
 
-  return { list: list, get: get, toDoc: toDoc };
+  /** The presets kid mode offers (simple 4-arm Cut mode flakes that are clean for kid scissors). */
+  var kidList = list.filter(function (p) { return p.kids; });
+
+  return { list: list, kidList: kidList, get: get, toDoc: toDoc };
 });

@@ -193,3 +193,39 @@ test('QR code: kid-mode templates lead back to kid mode, full templates to the f
     assert.ok(Math.abs(Math.max(...xs) - 576) < 1e-9 && size > 0);
   });
 });
+
+/* ---------- classroom feedback: shapes that start out clean, dropped where you let go ---------- */
+
+test('kid shape library: only shapes that land clean, at every kid drop spot (no red warnings on a new shape)', () => {
+  const S = require('../js/shapes');
+  assert.ok(S.kidList.length >= 6 && S.kidList.every(Boolean), 'a real list of library shapes');
+  ['star', 'sparkle', 'snowstar', 'triangle', 'diamond'].forEach(id => assert.ok(!S.kidList.some(s => s.id === id), id + ' is too pointy for kid mode'));
+  S.kidList.forEach(sh => {
+    for (let n = 0; n < 8; n++) {
+      const d = ST.defaultDoc(); d.arms = 4;
+      const st = ST.createStore(d, { kids: true });
+      for (let i = 0; i < n; i++) st.addShape('circle');
+      const o = st.addShape(sh.id);
+      const solo = ST.defaultDoc(); solo.arms = 4; solo.objects = [Object.assign({}, o)]; solo.nextId = 2;
+      const a = AN.analyze(solo, { tool: 0, kids: true }).stats;
+      assert.equal(a.thinCut + a.thinPaper + a.islands, 0, sh.id + ' as shape #' + (n + 1));
+    }
+  });
+});
+
+test('full mode keeps every shape and its usual drop spots', () => {
+  const S = require('../js/shapes');
+  assert.ok(S.list.length > S.kidList.length);
+  const st = ST.createStore(ST.defaultDoc());
+  const ys = [0, 1, 2, 3].map(() => st.addShape('circle').y);
+  assert.deepEqual(ys, [-58, -36, -80, -22]);
+});
+
+test('a shape dragged from the library lands where it is dropped (and still respects the kid minimum)', () => {
+  const st = ST.createStore(ST.defaultDoc(), { kids: true });
+  const o = st.addShape('circle', { at: [12.5, -40] });
+  assert.equal(o.x, 12.5); assert.equal(o.y, -40);
+  assert.ok(o.sx >= MIN);
+  const far = st.addShape('square', { at: [999, -999] });
+  assert.ok(Math.abs(far.x) <= 150 && Math.abs(far.y) <= 150, 'a wild drop is kept near the wedge');
+});

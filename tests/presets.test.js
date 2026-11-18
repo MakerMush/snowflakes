@@ -6,9 +6,9 @@ const AN = require('../js/analyze');
 const P = require('../js/presets');
 const S = require('../js/shapes');
 
-test('there are five presets with unique ids, names and blurbs', () => {
-  assert.equal(P.list.length, 5);
-  assert.equal(new Set(P.list.map(p => p.id)).size, 5);
+test('there are seven presets with unique ids, names and blurbs', () => {
+  assert.equal(P.list.length, 7);
+  assert.equal(new Set(P.list.map(p => p.id)).size, 7);
   P.list.forEach(p => { assert.ok(p.name && p.blurb); assert.equal(P.get(p.id), p); });
   assert.equal(P.get('nope'), null);
   assert.equal(P.toDoc('nope'), null);
@@ -17,9 +17,15 @@ test('there are five presets with unique ids, names and blurbs', () => {
 for (const p of P.list) {
   test(`${p.id}: loads through the sanitizer without losing anything`, () => {
     const d = P.toDoc(p);
-    assert.equal(d.arms, 6);
-    assert.equal(d.mode, 'build', 'presets start in Build mode');
-    assert.ok(d.objects.some(o => o.role === 'keep'), 'built from keep shapes');
+    if (p.kids) {                                  // the kid-mode flakes: 4 arms, Cut mode, like kid mode itself
+      assert.equal(d.arms, 4);
+      assert.equal(d.mode, 'cut');
+      assert.ok(d.objects.some(o => o.role === 'cut'), 'cut from paper');
+    } else {
+      assert.equal(d.arms, 6);
+      assert.equal(d.mode, 'build', 'presets start in Build mode');
+      assert.ok(d.objects.some(o => o.role === 'keep'), 'built from keep shapes');
+    }
     assert.equal(d.objects.length, p.objects.length);
     assert.ok(d.objects.length <= ST.MAX_OBJECTS);
     d.objects.forEach((o, i) => {
@@ -52,7 +58,20 @@ for (const p of P.list) {
 
 test('presets look different from each other', () => {
   const sig = P.list.map(p => { const a = AN.analyze(P.toDoc(p)); return Math.round(a.stats.cutLenUnits) + '/' + a.stats.interiorHoles + '/' + a.stats.edgeCuts; });
-  assert.equal(new Set(sig).size, 5, sig.join(' '));
+  assert.equal(new Set(sig).size, P.list.length, sig.join(' '));
+});
+
+test('kid mode offers Blocky star and Pinwheel, and they come through kid mode clean (sizes, checks, no grown-up cuts)', () => {
+  assert.deepEqual(P.kidList.map(p => p.id), ['blocky', 'pinwheel']);
+  P.kidList.forEach(p => {
+    const doc = ST.createStore(P.toDoc(p), { kids: true }).doc;
+    doc.objects.forEach((o, i) => {
+      assert.ok(o.sx >= ST.KID_MIN_SIZE && o.sy >= ST.KID_MIN_SIZE, p.id + ' shape ' + i + ' is already kid size');
+      assert.ok(Math.abs(o.sx - p.objects[i].sx) < 1e-9 && Math.abs(o.sy - p.objects[i].sy) < 1e-9, 'nothing had to grow');
+    });
+    const a = AN.analyze(doc, { tool: 0, kids: true });
+    assert.equal(a.stats.islands + a.stats.thinPaper + a.stats.thinCut + a.stats.interiorHoles, 0, p.id);
+  });
 });
 
 test('Photo medallion: marked as needing a picture, and any picture dropped in at the default spot stays connected', () => {

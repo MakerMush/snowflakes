@@ -14,6 +14,7 @@
   function f(v) { return Math.round(v * 1000) / 1000; }
   function deg(r) { return r * 180 / Math.PI; }
   var MAX_ZOOM = 6;
+  var MIN_ZOOM = 0.35;                   // zoom out far enough to find a shape stretched way past the wedge
 
   function Editor(svg, store) {
     this.svg = svg;
@@ -71,10 +72,12 @@
   Editor.prototype.zoomLevel = function () { return this.home && this.view ? this.home.w / this.view.w : 1; };
   Editor.prototype.onZoom = function (fn) { this.zoomListeners.push(fn); fn(this.zoomLevel()); };
 
-  /** Show view box v, kept between "whole wedge" (zoom 1) and MAX_ZOOM and never panned off the wedge. */
+  /** Keep a view coordinate so the view never leaves the wedge: inside it when zoomed in, around it when zoomed out. */
+  function clampSpan(x, size, h0, hsize) { return size <= hsize ? G.clamp(x, h0, h0 + hsize - size) : G.clamp(x, h0 + hsize - size, h0); }
+  /** Show view box v, kept between MIN_ZOOM and MAX_ZOOM ("whole wedge" is zoom 1) and never panned off the wedge. */
   Editor.prototype.setView = function (v) {
-    var H = this.home, z = G.clamp(H.w / v.w, 1, MAX_ZOOM), w = H.w / z, h = H.h / z;
-    var x = G.clamp(v.x + (v.w - w) / 2, H.x, H.x + H.w - w), y = G.clamp(v.y + (v.h - h) / 2, H.y, H.y + H.h - h);
+    var H = this.home, z = G.clamp(H.w / v.w, MIN_ZOOM, MAX_ZOOM), w = H.w / z, h = H.h / z;
+    var x = clampSpan(v.x + (v.w - w) / 2, w, H.x, H.w), y = clampSpan(v.y + (v.h - h) / 2, h, H.y, H.h);
     this.view = { x: x, y: y, w: w, h: h };
     this.svg.setAttribute('viewBox', [x, y, w, h].map(f).join(' '));
     this.measure();
@@ -84,7 +87,7 @@
   };
   /** The view box zoomed by `factor` around the screen point (cx, cy) of view v0, then moved by (dx, dy) pixels. */
   Editor.prototype.zoomedView = function (v0, factor, cx, cy, dx, dy) {
-    var H = this.home, z0 = H.w / v0.w, z1 = G.clamp(z0 * factor, 1, MAX_ZOOM), r = z0 / z1;
+    var H = this.home, z0 = H.w / v0.w, z1 = G.clamp(z0 * factor, MIN_ZOOM, MAX_ZOOM), r = z0 / z1;
     var p = this.worldAt(v0, cx, cy), k1 = this.mapping(v0).k / r;
     return { x: p[0] - (p[0] - v0.x) * r - (dx || 0) / k1, y: p[1] - (p[1] - v0.y) * r - (dy || 0) / k1, w: v0.w * r, h: v0.h * r };
   };
@@ -92,13 +95,31 @@
     var r = this.svg.getBoundingClientRect();
     return [r.left + r.width / 2, r.top + r.height / 2];
   };
+  /** The wedge plus every shape on it (rotated corners included), in wedge units. */
+  Editor.prototype.contentBox = function () {
+    var H = this.home, b = { x0: H.x, y0: H.y, x1: H.x + H.w, y1: H.y + H.h };
+    this.store.doc.objects.forEach(function (o) {
+      var a = (o.rot || 0) * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+      [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(function (k) {
+        var px = k[0] * o.sx / 2, py = k[1] * o.sy / 2, x = o.x + px * c - py * s, y = o.y + px * s + py * c;
+        b.x0 = Math.min(b.x0, x); b.y0 = Math.min(b.y0, y); b.x1 = Math.max(b.x1, x); b.y1 = Math.max(b.y1, y);
+      });
+    });
+    return b;
+  };
   Editor.prototype.zoomBy = function (factor) {
-    var c = this.centre();
-    this.setView(this.zoomedView(this.view, factor, c[0], c[1]));
+    var c = this.centre(), v = this.zoomedView(this.view, factor, c[0], c[1]);
+    if (this.home.w / v.w < 0.999) {                 // zoomed out: centre on everything, so a giant shape comes into view
+      var b = this.contentBox();
+      v.x = (b.x0 + b.x1) / 2 - v.w / 2; v.y = (b.y0 + b.y1) / 2 - v.h / 2;
+    }
+    this.setView(v);
   };
   Editor.prototype.zoomIn = function () { this.zoomBy(1.5); };
   Editor.prototype.zoomOut = function () { this.zoomBy(1 / 1.5); };
   Editor.prototype.resetZoom = function () { this.setView(this.home); };
+  Editor.MIN_ZOOM = MIN_ZOOM;
+  Editor.MAX_ZOOM = MAX_ZOOM;
 
   Editor.prototype.wheel = function (e) {
     if (!this.view) return;
@@ -107,7 +128,7 @@
     if (e.ctrlKey || e.metaKey) {                                       // pinch on a trackpad, or Ctrl/Cmd + scroll
       var dz = G.clamp(e.deltaY * unit, -50, 50);                       // one mouse-wheel notch is about 1.35x; trackpad pinches are smooth
       this.setView(this.zoomedView(this.view, Math.exp(-dz * 0.006), e.clientX, e.clientY));
-    } else if (this.zoomLevel() > 1.001) {                              // scroll pans while zoomed in
+    } else if (Math.abs(this.zoomLevel() - 1) > 0.001) {                // scroll pans while zoomed in or out
       var k = this.mapping(this.view).k, dx = (e.shiftKey && !e.deltaX ? e.deltaY : e.deltaX) * unit, dy = e.shiftKey ? 0 : e.deltaY * unit;
       this.setView({ x: this.view.x + dx / k, y: this.view.y + dy / k, w: this.view.w, h: this.view.h });
     }
@@ -213,8 +234,21 @@
     if (!ids.length) { this.gSel.innerHTML = ''; return; }
     // bigger handles for fingers than for mice
     var coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
-    var k = coarse ? 1.8 : 1;
+    var kids = !!(root.SF.config && root.SF.config.kids);
+    var k = coarse ? (kids ? 2.2 : 1.8) : 1;
     var u = this.upp, hs = 4.8 * u * k, off = 26 * u * k, hs2 = hs * 2, html, handles;
+    // each handle also gets an invisible, finger-sized hit area (about 44 px on a tablet), shrunk on small shapes
+    // so the shape itself can still be grabbed in the middle
+    var hitMax = (coarse ? 22 : 10) * u;
+    function hitFor(w, h) { return Math.max(hs, Math.min(hitMax, 0.3 * Math.min(w, h))); }
+    function hdl(name, x, y, hit) {
+      return '<rect class="hdl-hit" data-handle="' + name + '" x="' + f(x - hit) + '" y="' + f(y - hit) + '" width="' + f(hit * 2) + '" height="' + f(hit * 2) + '"/>' +
+        '<rect class="hdl hdl-' + name + '" data-handle="' + name + '" x="' + f(x - hs) + '" y="' + f(y - hs) + '" width="' + f(hs2) + '" height="' + f(hs2) + '"/>';
+    }
+    function rotHdl(cx, cy, hit) {
+      return '<circle class="hdl-hit" data-handle="rot" cx="' + f(cx) + '" cy="' + f(cy) + '" r="' + f(Math.max(hit, 5.8 * u * k)) + '"/>' +
+        '<circle class="hdl hdl-rot" data-handle="rot" cx="' + f(cx) + '" cy="' + f(cy) + '" r="' + f(5.8 * u * k) + '"/>';
+    }
     if (ids.length > 1) {                                  // several shapes or a group: one upright box
       var bb = this.store.selectionBounds();
       if (!bb) { this.gSel.innerHTML = ''; return; }
@@ -222,11 +256,9 @@
         '<rect class="sel-box" x="' + f(bb.x0) + '" y="' + f(bb.y0) + '" width="' + f(bb.w) + '" height="' + f(bb.h) + '"/>' +
         '<line class="sel-stem" x1="' + f(bb.cx) + '" y1="' + f(bb.y0) + '" x2="' + f(bb.cx) + '" y2="' + f(bb.y0 - off) + '"/>';
       handles = [['nw', bb.x0, bb.y0], ['ne', bb.x1, bb.y0], ['se', bb.x1, bb.y1], ['sw', bb.x0, bb.y1]];
-      handles.forEach(function (h) {
-        html += '<rect class="hdl hdl-' + h[0] + '" data-handle="' + h[0] + '" x="' + f(h[1] - hs) + '" y="' + f(h[2] - hs) +
-          '" width="' + f(hs2) + '" height="' + f(hs2) + '"/>';
-      });
-      html += '<circle class="hdl hdl-rot" data-handle="rot" cx="' + f(bb.cx) + '" cy="' + f(bb.y0 - off) + '" r="' + f(5.8 * u * k) + '"/></g>';
+      var hitB = hitFor(bb.w, bb.h);
+      handles.forEach(function (h) { html += hdl(h[0], h[1], h[2], hitB); });
+      html += rotHdl(bb.cx, bb.y0 - off, hitMax) + '</g>';
       this.gSel.innerHTML = html;
       return;
     }
@@ -239,11 +271,9 @@
     handles = [['nw', -hx, -hy], ['ne', hx, -hy], ['se', hx, hy], ['sw', -hx, hy]];
     if (o.sx > hs2 * 4) handles.push(['n', 0, -hy], ['s', 0, hy]);
     if (o.sy > hs2 * 4) handles.push(['e', hx, 0], ['w', -hx, 0]);
-    handles.forEach(function (h) {
-      html += '<rect class="hdl hdl-' + h[0] + '" data-handle="' + h[0] + '" x="' + f(h[1] - hs) + '" y="' + f(h[2] - hs) +
-        '" width="' + f(hs2) + '" height="' + f(hs2) + '"/>';
-    });
-    html += '<circle class="hdl hdl-rot" data-handle="rot" cx="0" cy="' + f(-hy - off) + '" r="' + f(5.8 * u * k) + '"/></g>';
+    var hitS = hitFor(o.sx, o.sy);
+    handles.forEach(function (h) { html += hdl(h[0], h[1], h[2], h[0].length === 1 ? Math.min(hitS, hs * 1.6) : hitS); });
+    html += rotHdl(0, -hy - off, hitMax) + '</g>';
     this.gSel.innerHTML = html;
   };
 

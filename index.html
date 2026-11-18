@@ -8,7 +8,7 @@
 <meta name="description" content="Design a paper snowflake, preview it unfolded, then print a fold-and-cut template.">
 <meta name="theme-color" content="#0a0e13">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%230a0e13'/%3E%3Cg stroke='%23cde9f7' stroke-width='1.6' stroke-linecap='round' fill='none'%3E%3Cpath d='M12 4v16M5.1 8l13.8 8M5.1 16l13.8-8'/%3E%3C/g%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/styles.css?v=b1673c5df4">
+<link rel="stylesheet" href="css/styles.css?v=d575f9c9f1">
 </head>
 <body data-tab="design">
 
@@ -111,6 +111,11 @@
       <button type="button" class="tab" role="tab" aria-selected="false" data-ltab="photo">Photo</button>
     </div>
     <div id="paneShapes">
+      <div class="kid-starters" id="kidStarters" hidden>
+        <p class="hint">Start from a snowflake</p>
+        <div class="kid-starter-list" id="kidStarterList"></div>
+        <p class="hint">Or add shapes</p>
+      </div>
       <p class="hint" id="shapesHint">Click a shape to drop it on the wedge, then drag, resize and rotate it.</p>
       <div class="tiles" id="tiles"></div>
     </div>
@@ -446,23 +451,23 @@
   <button type="button" id="toastAction" class="toast-action"></button>
 </div>
 
-<script src="js/config.js?v=b1673c5df4"></script>
-<script src="js/geometry.js?v=b1673c5df4"></script>
-<script src="js/shapes.js?v=b1673c5df4"></script>
-<script src="js/sampler.js?v=b1673c5df4"></script>
-<script src="js/analyze.js?v=b1673c5df4"></script>
-<script src="js/state.js?v=b1673c5df4"></script>
-<script src="js/preview.js?v=b1673c5df4"></script>
-<script src="js/presets.js?v=b1673c5df4"></script>
-<script src="js/trace.js?v=b1673c5df4"></script>
-<script src="js/qr.js?v=b1673c5df4"></script>
-<script src="js/pdf.js?v=b1673c5df4"></script>
-<script src="js/print.js?v=b1673c5df4"></script>
-<script src="js/worksheet.js?v=b1673c5df4"></script>
-<script src="js/photo.js?v=b1673c5df4"></script>
-<script src="js/printui.js?v=b1673c5df4"></script>
-<script src="js/geolab.js?v=b1673c5df4"></script>
-<script src="js/editor.js?v=b1673c5df4"></script>
-<script src="js/app.js?v=b1673c5df4"></script>
+<script src="js/config.js?v=d575f9c9f1"></script>
+<script src="js/geometry.js?v=d575f9c9f1"></script>
+<script src="js/shapes.js?v=d575f9c9f1"></script>
+<script src="js/sampler.js?v=d575f9c9f1"></script>
+<script src="js/analyze.js?v=d575f9c9f1"></script>
+<script src="js/state.js?v=d575f9c9f1"></script>
+<script src="js/preview.js?v=d575f9c9f1"></script>
+<script src="js/presets.js?v=d575f9c9f1"></script>
+<script src="js/trace.js?v=d575f9c9f1"></script>
+<script src="js/qr.js?v=d575f9c9f1"></script>
+<script src="js/pdf.js?v=d575f9c9f1"></script>
+<script src="js/print.js?v=d575f9c9f1"></script>
+<script src="js/worksheet.js?v=d575f9c9f1"></script>
+<script src="js/photo.js?v=d575f9c9f1"></script>
+<script src="js/printui.js?v=d575f9c9f1"></script>
+<script src="js/geolab.js?v=d575f9c9f1"></script>
+<script src="js/editor.js?v=d575f9c9f1"></script>
+<script src="js/app.js?v=d575f9c9f1"></script>
 </body>
 </html>

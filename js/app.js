@@ -46,19 +46,67 @@
 
   /* ---------- shape library ---------- */
 
-  $('tiles').innerHTML = S.list.map(function (sh) {
+  $('tiles').innerHTML = (KIDS ? S.kidList : S.list).map(function (sh) {
     var f = S.fit(sh.aspect);
     return '<button type="button" class="tile" data-shape="' + sh.id + '" title="' + sh.name + '" aria-label="Add ' + sh.name + '">' +
       '<svg viewBox="-0.62 -0.62 1.24 1.24" aria-hidden="true"><path d="' + S.pathD(sh) + '" transform="scale(' + f.sx + ' ' + f.sy + ')" fill-rule="evenodd"/></svg>' +
       '<span>' + sh.name + '</span></button>';
   }).join('');
 
+  var dragJustEnded = false;                          // a drag onto the wedge already added the shape
   $('tiles').addEventListener('click', function (e) {
     var b = e.target.closest('[data-shape]');
-    if (!b) return;
+    if (!b || dragJustEnded) return;
     if (!store.addShape(b.getAttribute('data-shape'))) toast('That is the most shapes the wedge can hold.');
     else if (isNarrow()) go('design');
   });
+
+  /* drag a tile straight onto the wedge (a tap still adds it at the next free spot) */
+  (function () {
+    var drag = null;
+    function overEditor(x, y) {
+      var r = $('editor').getBoundingClientRect();
+      return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom && !isNarrow();
+    }
+    function end() {
+      if (!drag) return;
+      if (drag.ghost) drag.ghost.remove();
+      $('editor').classList.remove('drop-target');
+      document.body.classList.remove('tile-dragging');
+      drag = null;
+    }
+    $('tiles').addEventListener('pointerdown', function (e) {
+      var b = e.target.closest('[data-shape]');
+      if (!b || e.button > 0 || isNarrow()) return;
+      drag = { id: b.getAttribute('data-shape'), tile: b, pid: e.pointerId, x0: e.clientX, y0: e.clientY, ghost: null };
+    });
+    root.addEventListener('pointermove', function (e) {
+      if (!drag || e.pointerId !== drag.pid) return;
+      if (!drag.ghost) {
+        if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 8) return;
+        drag.ghost = document.createElement('div');
+        drag.ghost.className = 'tile-ghost';
+        drag.ghost.appendChild(drag.tile.querySelector('svg').cloneNode(true));
+        document.body.appendChild(drag.ghost);
+        document.body.classList.add('tile-dragging');
+      }
+      e.preventDefault();
+      drag.ghost.style.transform = 'translate(' + (e.clientX - 32) + 'px,' + (e.clientY - 32) + 'px)';
+      $('editor').classList.toggle('drop-target', overEditor(e.clientX, e.clientY));
+    }, { passive: false });
+    root.addEventListener('pointerup', function (e) {
+      if (!drag || e.pointerId !== drag.pid) return;
+      var d = drag;
+      end();
+      if (!d.ghost) return;                                  // no movement: the click handler adds it
+      dragJustEnded = true;
+      setTimeout(function () { dragJustEnded = false; }, 0);
+      if (!overEditor(e.clientX, e.clientY)) return;
+      var at = editor.worldAt(editor.view, e.clientX, e.clientY);
+      if (!store.addShape(d.id, { at: at })) toast('That is the most shapes the wedge can hold.');
+    });
+    root.addEventListener('pointercancel', function (e) { if (drag && e.pointerId === drag.pid) end(); });
+  })();
 
   /* ---------- left panel tabs + presets ---------- */
 
@@ -102,10 +150,31 @@
       leftTab('photo');                                   // the next step is adding a picture, so go straight there
       toast('Loaded ' + p.name + '. Add your picture, then drag or resize it until it touches the frame.', 'Undo', function () { store.undo(); });
     } else {
-      toast('Loaded ' + p.name + ' in Build mode. Change anything you like.', 'Undo', function () { store.undo(); });
+      toast('Loaded ' + p.name + (p.mode === 'cut' ? ' (' + p.arms + ' arms, Cut mode)' : ' in Build mode') + '. Change anything you like.', 'Undo', function () { store.undo(); });
       if (isNarrow()) go('design');
     }
   });
+
+  /* kid mode: start from one of the simple snowflakes instead of a blank wedge */
+  if (KIDS) {
+    $('kidStarters').hidden = false;
+    $('kidStarterList').innerHTML = P.kidList.map(function (p) {
+      return '<button type="button" class="kid-starter" data-kidpreset="' + p.id + '" aria-label="Start from the ' + p.name + ' snowflake">' +
+        '<svg viewBox="-108 -108 216 216" aria-hidden="true"></svg><span>' + p.name + '</span></button>';
+    }).join('');
+    P.kidList.forEach(function (p) {
+      SF.preview.render($('kidStarterList').querySelector('[data-kidpreset="' + p.id + '"] svg'), P.toDoc(p), { idPrefix: 'kz-' + p.id });
+    });
+    $('kidStarterList').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-kidpreset]');
+      if (!b) return;
+      var p = P.get(b.getAttribute('data-kidpreset'));
+      store.replaceAll(P.toDoc(p));
+      editor.resetZoom();
+      toast('Here is the ' + p.name + '. Change anything you like!', 'Undo', function () { store.undo(); });
+      if (isNarrow()) go('design');
+    });
+  }
 
   /* ---------- top bar ---------- */
 
@@ -140,12 +209,12 @@
   $('zoomOut').addEventListener('click', function () { editor.zoomOut(); });
   $('zoomReset').addEventListener('click', function () { editor.resetZoom(); });
   editor.onZoom(function (z) {
-    var zoomed = z > 1.001;
+    var zoomed = Math.abs(z - 1) > 0.001;                  // in or out: Reset brings back the whole wedge
     $('zoomPct').textContent = Math.round(z * 100) + '%';
     $('zoomReset').disabled = !zoomed;
     $('zoomReset').classList.toggle('zoomed', zoomed);
-    $('zoomOut').disabled = !zoomed;
-    $('zoomIn').disabled = z >= 5.999;
+    $('zoomOut').disabled = z <= SF.Editor.MIN_ZOOM + 0.001;
+    $('zoomIn').disabled = z >= SF.Editor.MAX_ZOOM - 0.001;
   });
 
   /* ---------- popovers (More menu, Align) ---------- */
@@ -347,9 +416,9 @@
     });
     document.body.setAttribute('data-mode', doc.mode);
     $('editor').setAttribute('data-mode', doc.mode);
-    $('shapesHint').textContent = KIDS ? 'Tap a shape. Then drag it on the wedge.' : doc.mode === 'build'
-      ? 'Build mode: nothing is kept yet. Click a shape to add paper, then drag, resize and rotate it. Connect everything to the center.'
-      : 'Click a shape to drop it on the wedge, then drag, resize and rotate it.';
+    $('shapesHint').textContent = KIDS ? 'Tap a shape, or drag it onto the wedge.' : doc.mode === 'build'
+      ? 'Build mode: nothing is kept yet. Click a shape (or drag it onto the wedge) to add paper, then drag, resize and rotate it. Connect everything to the center.'
+      : 'Click a shape or drag it onto the wedge, then drag, resize and rotate it.';
     var info = G.groupInfo(doc.arms);
     $('setupLbl').textContent = doc.arms + ' arms · ' + (doc.mode === 'build' ? 'Build' : 'Cut') + ' mode';
     $('foldChip').textContent = info.wedgeDeg + '° · ' + info.order + ' layers';

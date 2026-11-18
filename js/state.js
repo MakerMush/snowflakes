@@ -175,12 +175,13 @@
   }
 
   /** Where a newly added shape lands, and how big it is, so repeated adds do not stack. */
-  function placement(k, arms) {
-    var ys = [-58, -36, -80, -22, -68, -46];
+  function placement(k, arms, kids) {
+    // kid mode skips the narrow spots near the center, where a new shape would start out too tight to cut
+    var ys = kids ? [-60, -80, -46, -70] : [-58, -36, -80, -22, -68, -46];
     var y = ys[k % ys.length];
     var hw = G.wedgeHalfWidthAt(arms, y);
-    var size = G.clamp(hw * 2 * 0.6, 9, 26);
-    var x = (k % 2 ? 1 : -1) * hw * 0.12 * (k % 3) + 0;   // "+ 0" turns -0 into 0
+    var size = G.clamp(hw * 2 * (kids ? 0.5 : 0.6), 9, 26);
+    var x = kids ? 0 : (k % 2 ? 1 : -1) * hw * 0.12 * (k % 3) + 0;   // "+ 0" turns -0 into 0; kids: centered, even gaps
     return { x: x, y: y, size: size };
   }
 
@@ -333,11 +334,12 @@
         var sh = S.get(shapeId);
         if (!sh || doc.objects.length >= MAX_OBJECTS) return null;
         begin();
-        var pl = placement(doc.objects.length, doc.arms);
+        var pl = placement(doc.objects.length, doc.arms, MIN > 1);
         var f = S.fit(sh.aspect);
         var o = {
           id: newId(), type: 'shape', shapeId: shapeId,
-          x: pl.x, y: pl.y, sx: pl.size * f.sx, sy: pl.size * f.sy,
+          x: opts.at ? G.clamp(+opts.at[0] || 0, -150, 150) : pl.x, y: opts.at ? G.clamp(+opts.at[1] || 0, -150, 150) : pl.y,   // at: dropped here
+          sx: pl.size * f.sx, sy: pl.size * f.sy,
           rot: 0, flip: false,
           role: opts.role ? (opts.role === 'keep' ? 'keep' : 'cut') : (doc.mode === 'build' ? 'keep' : 'cut')
         };

@@ -281,6 +281,34 @@ body[data-mode="build"] .sw-keep { background: #fff; border-color: var(--steel-7
 .sel-box { fill: none; stroke: var(--black); stroke-width: 1px; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; pointer-events: none; }
 .sel-stem { stroke: var(--black); stroke-width: 1px; vector-effect: non-scaling-stroke; pointer-events: none; }
 .hdl { fill: #fff; stroke: var(--black); stroke-width: 1.5px; vector-effect: non-scaling-stroke; }
+/* invisible, finger-sized grab areas around each handle (editor.js) */
+.hdl-hit { fill: transparent; stroke: none; pointer-events: all; }
+.hdl-hit[data-handle="nw"], .hdl-hit[data-handle="se"] { cursor: nwse-resize; }
+.hdl-hit[data-handle="ne"], .hdl-hit[data-handle="sw"] { cursor: nesw-resize; }
+.hdl-hit[data-handle="n"], .hdl-hit[data-handle="s"] { cursor: ns-resize; }
+.hdl-hit[data-handle="e"], .hdl-hit[data-handle="w"] { cursor: ew-resize; }
+.hdl-hit[data-handle="rot"] { cursor: grab; }
+
+/* dragging a shape tile onto the wedge (app.js) */
+.tile { touch-action: pan-y; }                 /* sideways drags move the shape; up and down still scroll the list */
+.tile-ghost {
+  position: fixed; left: 0; top: 0; z-index: 60; width: 64px; height: 64px; padding: 6px; pointer-events: none;
+  border: 1.5px solid var(--black); border-radius: 12px; background: rgba(255, 255, 255, .9); box-shadow: 0 8px 20px rgba(10, 14, 19, .25);
+}
+.tile-ghost svg { width: 100%; height: 100%; display: block; fill: var(--steel-700); }
+body.tile-dragging, body.tile-dragging * { cursor: grabbing !important; user-select: none; -webkit-user-select: none; }
+#editor.drop-target { outline: 3px dashed var(--ice-500); outline-offset: -6px; }
+
+/* kid mode: start from a snowflake */
+.kid-starters[hidden] { display: none; }
+.kid-starter-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 6px; }
+.kid-starter {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 6px; cursor: pointer;
+  border: 2px solid var(--steel-200); border-radius: 14px; background: var(--white);
+  font: 600 15px var(--sans); color: var(--steel-700);
+}
+.kid-starter:hover { border-color: var(--black); }
+.kid-starter svg { width: 100%; max-width: 92px; aspect-ratio: 1; border-radius: 50%; background: var(--black); }
 .hdl:hover { fill: var(--ice-200); }
 .hdl-rot { cursor: grab; fill: var(--black); }
 .hdl-rot:hover { fill: var(--ice-700); }

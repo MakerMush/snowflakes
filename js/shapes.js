@@ -151,6 +151,11 @@
 
   function get(id) { return byId[id] || null; }
 
+  /* Kid mode offers only the rounded and chunky shapes. Pointy ones (stars, sparkle, triangle, diamond...) have tips
+     narrower than kid scissors can cut, so they came up red the moment they landed (a test keeps this list clean). */
+  var KID_IDS = ['circle', 'dome', 'square', 'pentagon', 'hexagon', 'heart', 'capsule'];
+  var kidList = KID_IDS.map(get);
+
   /** The shape data for an object: a library shape, or inline polys (traced photos, later). */
   function resolve(o) {
     if (o && o.polys) return { id: null, name: o.name || 'Traced shape', polys: o.polys, aspect: o.aspect || 1 };
@@ -171,5 +176,5 @@
     return d;
   }
 
-  return { list: list, get: get, resolve: resolve, fit: fit, pathD: pathD, normalize: normalize };
+  return { list: list, kidList: kidList, get: get, resolve: resolve, fit: fit, pathD: pathD, normalize: normalize };
 });
